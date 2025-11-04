@@ -35,8 +35,7 @@ export default function InventoryTab({ player, onUseItem }) {
             return (
               <div
                 key={idx}
-                className={`p-3 bg-gradient-to-br ${getItemColor(itemName)} rounded-xl hover:scale-105 border cursor-pointer transition-all group shadow-md hover:shadow-xl`}
-                onClick={() => onUseItem && onUseItem(item)}
+                className={`relative p-3 bg-gradient-to-br ${getItemColor(itemName)} rounded-xl hover:scale-105 border transition-all group shadow-md hover:shadow-xl`}
               >
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
@@ -52,6 +51,16 @@ export default function InventoryTab({ player, onUseItem }) {
                       ×{itemQuantity}
                     </span>
                   )}
+                </div>
+
+                {/* Hover info overlay */}
+                <div className="pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="absolute right-2 top-2 text-[10px] bg-slate-900/80 border border-slate-600/60 rounded-md px-2 py-1 text-slate-200 shadow-lg">
+                    Hovering: {itemName}
+                  </div>
+                  <div className="absolute left-2 bottom-2 text-[11px] text-slate-300">
+                    Tip: type "use {itemName.toLowerCase()}" in chat
+                  </div>
                 </div>
               </div>
             );
@@ -69,7 +78,7 @@ export default function InventoryTab({ player, onUseItem }) {
       {/* Help text */}
       <div className="mt-6 p-4 bg-gradient-to-r from-blue-900/30 to-purple-900/30 border border-blue-700/50 rounded-xl text-sm shadow-lg">
         <p className="text-blue-200">
-          💡 <strong className="text-white">Tip:</strong> Click an item to use it, or describe how you want to use it in chat.
+          💡 <strong className="text-white">Tip:</strong> Hover an item to see details. To use an item, say it in chat, e.g., <em className="text-purple-300">"use healing potion"</em>.
         </p>
       </div>
     </div>

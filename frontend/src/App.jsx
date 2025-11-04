@@ -94,8 +94,96 @@ function App() {
     setQuickActions(actions);
   }
   
+  // Parser to detect item usage anywhere in the sentence (e.g., "I grab my rope...")
+  function parseUseIntent(text) {
+    const verbs = [
+      'use', 'grab', 'take', 'pull out', 'draw',
+      'drink', 'quaff', 'equip', 'don', 'wield',
+      'eat', 'chew', 'read', 'light', 'ignite', 'strike',
+      'apply', 'smear', 'throw', 'toss', 'hurl'
+    ];
+    const lower = text.toLowerCase();
+    const normalized = lower
+      .replace(/\b(the|a|an|my|some)\b/g, ' ')
+      .replace(/[^a-z0-9\s\-']/g, ' ') // drop punctuation, keep hyphens/apostrophes
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    // Stage A: direct verb + item phrase anywhere in the sentence
+    const verbPattern = new RegExp(`\\b(${verbs.join('|')})\\b\\s+(?:the|a|an|my|some)?\\s*([^,.!?;]*)`, 'i');
+    const direct = normalized.match(verbPattern);
+    if (direct && direct[2]) {
+      const candidate = direct[2].replace(/\b(and|then|across|into|onto|with|at|to|from)\b.*$/i, '').trim();
+      if (candidate) return { verb: direct[1], item: candidate };
+    }
+
+    // Stage B: if any verb exists anywhere and an inventory item name appears, infer usage
+    const anyVerb = verbs.some(v => new RegExp(`\\b${v}\\b`, 'i').test(normalized));
+    if (anyVerb && playerState?.inventory?.length) {
+      const textTokens = normalized;
+      // Find the first inventory item name that appears in text
+      let bestMatch = null;
+      for (const it of playerState.inventory) {
+        const display = typeof it === 'string' ? it : (it.name || '');
+        const normName = sanitizeItemName(display);
+        if (normName && textTokens.includes(normName)) {
+          bestMatch = { verb: 'use', item: display };
+          break;
+        }
+        // also try partial match for the first word of item
+        const firstWord = normName.split(' ')[0];
+        if (firstWord && textTokens.includes(firstWord) && firstWord.length >= 3) {
+          bestMatch = { verb: 'use', item: display };
+          break;
+        }
+      }
+      if (bestMatch) return bestMatch;
+    }
+
+    return null;
+  }
+
+  function sanitizeItemName(name) {
+    // Normalize, drop parentheticals and counts, punctuation, and numbers
+    return name
+      .toLowerCase()
+      .replace(/\([^)]*\)/g, ' ') // remove anything in parentheses
+      .replace(/x\d+$/,' ')
+      .replace(/\d+/g,' ') // drop digits like (50 ft) -> ' ft'
+      .replace(/[^a-z\s\-']/g,' ')
+      .replace(/\b(the|a|an|my|some)\b/g, ' ')
+      .replace(/\s+/g,' ')
+      .trim();
+  }
+
+  function findInventoryItem(itemName) {
+    if (!playerState || !playerState.inventory) return null;
+    const target = sanitizeItemName(itemName);
+    for (const it of playerState.inventory) {
+      const name = typeof it === 'string' ? it : (it.name || '');
+      const norm = sanitizeItemName(name);
+      if (norm === target) return it;
+      // allow partial includes if target is substring
+      if (norm.includes(target) || target.includes(norm)) return it;
+    }
+    return null;
+  }
+
   async function handleUserAction(input) {
     try {
+      // Pre-check for item usage intent and validate inventory
+      const intent = parseUseIntent(input);
+      if (intent) {
+        const found = findInventoryItem(intent.item);
+        if (!found) {
+          addMessage({
+            type: 'system',
+            content: `You don't have "${intent.item}" in your inventory.`
+          });
+          return; // do not send to AI
+        }
+      }
+
       // Add user message
       addMessage({ role: 'user', content: input });
       setIsThinking(true);
