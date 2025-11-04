@@ -1,13 +1,12 @@
 /**
- * GitHub Copilot API Service
- * Handles communication with GitHub Copilot's language models for narrative generation
+ * OpenAI API Service
+ * Handles communication with OpenAI's GPT-4 for narrative generation
  */
 
 import OpenAI from 'openai';
 
-const copilot = new OpenAI({
-  apiKey: import.meta.env.VITE_GITHUB_TOKEN,
-  baseURL: 'https://api.githubcopilot.com',
+const openai = new OpenAI({
+  apiKey: import.meta.env.VITE_OPENAI_API_KEY,
   dangerouslyAllowBrowser: true // Note: In production, proxy through backend
 });
 
