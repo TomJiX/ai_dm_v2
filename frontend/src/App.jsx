@@ -1,9 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import CharacterCreation from './components/CharacterCreation';
 import DialogueWindow from './components/DialogueWindow';
 import CharacterTab from './components/CharacterTab';
 import InventoryTab from './components/InventoryTab';
-import TabNavigation from './components/TabNavigation';
-import { initialPlayerState } from './data/initialState';
 import scenario from './data/goblin-cave.json';
 import { mcpClient } from './services/mcpClient';
 import { generateDMResponse } from './services/copilotService';
@@ -12,40 +11,44 @@ import { parseToolCalls, extractNarrative } from './services/toolParser';
 import { Save, Upload } from 'lucide-react';
 
 function App() {
+  const [showCharCreation, setShowCharCreation] = useState(true);
   const [messages, setMessages] = useState([]);
   const [playerState, setPlayerState] = useState(null);
   const [currentScene, setCurrentScene] = useState('start');
-  const [activeTab, setActiveTab] = useState('character');
   const [isThinking, setIsThinking] = useState(false);
   const [quickActions, setQuickActions] = useState([]);
+  const hasInitialized = useRef(false);
   
-  // Initialize game
-  useEffect(() => {
-    initializeGame();
-  }, []);
+  async function handleCharacterCreated(character) {
+    setShowCharCreation(false);
+    setPlayerState(character);
+    await initializeGame(character);
+  }
   
-  async function initializeGame() {
+  async function initializeGame(character) {
+    if (hasInitialized.current) return;
+    hasInitialized.current = true;
+    
     try {
-      // Initialize player state
+      // Initialize player state with created character
       await mcpClient.callTool('initialize_player', {
-        name: initialPlayerState.name,
-        class: initialPlayerState.class,
-        level: initialPlayerState.level,
-        maxHp: initialPlayerState.hp.max,
-        ac: initialPlayerState.ac,
-        stats: initialPlayerState.stats,
-        inventory: initialPlayerState.inventory
+        name: character.name,
+        class: character.class,
+        level: character.level,
+        maxHp: character.hp.max,
+        ac: character.ac,
+        stats: character.stats,
+        inventory: character.inventory
       });
-      
-      // Load player state
-      const stateResult = await mcpClient.callTool('load_state', { key: 'player' });
-      setPlayerState(stateResult.value);
       
       // Generate opening scene
       setIsThinking(true);
       const startScene = scenario.scenes.start;
-      const { systemPrompt, userPrompt } = buildOpeningPrompt(scenario, startScene);
-      const opening = await generateDMResponse(systemPrompt, userPrompt);
+      const customizedPrompt = buildOpeningPrompt(scenario, startScene);
+      const opening = await generateDMResponse(
+        customizedPrompt.systemPrompt + `\n\nThe player's name is ${character.name}, a ${character.gender} ${character.race} ${character.class}.`,
+        customizedPrompt.userPrompt
+      );
       
       addMessage({
         role: 'assistant',
@@ -285,26 +288,38 @@ function App() {
     }
   }
   
+  if (showCharCreation) {
+    return <CharacterCreation onComplete={handleCharacterCreated} />;
+  }
+
   return (
-    <div className="h-screen flex flex-col bg-gray-900">
-      <header className="bg-gray-800 border-b border-gray-700 px-6 py-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-white">⚔️ AI Dungeon Master</h1>
-            <p className="text-sm text-gray-400">{scenario.title}</p>
+    <div className="h-screen flex flex-col bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+      {/* Header */}
+      <header className="bg-slate-800/90 backdrop-blur-sm border-b border-purple-500/30 px-6 py-4 shadow-lg">
+        <div className="flex items-center justify-between max-w-[2000px] mx-auto">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-gradient-to-br from-purple-600 to-blue-600 rounded-lg flex items-center justify-center text-2xl shadow-lg">
+              ⚔️
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
+                AI Dungeon Master
+              </h1>
+              <p className="text-sm text-slate-400">{scenario.title}</p>
+            </div>
           </div>
           <div className="flex gap-2">
             <button
               onClick={saveGame}
-              className="flex items-center gap-2 bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded transition"
+              className="flex items-center gap-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white px-4 py-2 rounded-lg transition shadow-lg hover:shadow-purple-500/50"
               title="Save Game"
             >
               <Save size={18} />
-              <span className="hidden sm:inline">Save</span>
+              <span className="hidden sm:inline font-semibold">Save</span>
             </button>
-            <label className="flex items-center gap-2 bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded cursor-pointer transition">
+            <label className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white px-4 py-2 rounded-lg cursor-pointer transition shadow-lg hover:shadow-blue-500/50">
               <Upload size={18} />
-              <span className="hidden sm:inline">Load</span>
+              <span className="hidden sm:inline font-semibold">Load</span>
               <input
                 type="file"
                 accept=".json"
@@ -316,63 +331,50 @@ function App() {
         </div>
       </header>
       
-      <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
-        <div className="md:hidden flex flex-col h-full">
-          <div className="flex border-b border-gray-700">
-            <button
-              onClick={() => setActiveTab('dialogue')}
-              className={`flex-1 py-3 ${activeTab === 'dialogue' ? 'bg-gray-800 text-white' : 'text-gray-400'}`}
-            >
-              💬 Game
-            </button>
-            <button
-              onClick={() => setActiveTab('info')}
-              className={`flex-1 py-3 ${activeTab === 'info' ? 'bg-gray-800 text-white' : 'text-gray-400'}`}
-            >
-              📋 Info
-            </button>
+      {/* 3-Column Layout: Inventory | Chat | Character */}
+      <div className="flex-1 flex overflow-hidden max-w-[2000px] mx-auto w-full">
+        {/* Left: Inventory */}
+        <div className="hidden lg:flex w-80 border-r border-slate-700/50 bg-slate-800/30 backdrop-blur-sm flex-col">
+          <div className="px-4 py-3 bg-slate-800/50 border-b border-slate-700/50">
+            <h2 className="text-lg font-bold text-white">📦 Inventory</h2>
           </div>
-          
-          {activeTab === 'dialogue' && (
-            <div className="flex-1 overflow-hidden">
-              <DialogueWindow
-                messages={messages}
-                onSendMessage={handleUserAction}
-                isThinking={isThinking}
-                quickActions={quickActions}
-              />
-            </div>
-          )}
-          
-          {activeTab === 'info' && (
-            <div className="flex-1 flex flex-col overflow-hidden">
-              <TabNavigation activeTab={activeTab === 'info' ? 'character' : activeTab} onChange={setActiveTab} />
-              <div className="flex-1 overflow-hidden">
-                {activeTab === 'character' && <CharacterTab player={playerState} />}
-                {activeTab === 'inventory' && <InventoryTab player={playerState} onUseItem={handleUseItem} />}
-              </div>
-            </div>
-          )}
-        </div>
-        
-        <div className="hidden md:flex md:flex-1 overflow-hidden">
-          <div className="flex-1 overflow-hidden">
-            <DialogueWindow
-              messages={messages}
-              onSendMessage={handleUserAction}
-              isThinking={isThinking}
-              quickActions={quickActions}
-            />
-          </div>
-          
-          <div className="w-96 border-l border-gray-700 flex flex-col overflow-hidden">
-            <TabNavigation activeTab={activeTab} onChange={setActiveTab} />
-            <div className="flex-1 overflow-hidden">
-              {activeTab === 'character' && <CharacterTab player={playerState} />}
-              {activeTab === 'inventory' && <InventoryTab player={playerState} onUseItem={handleUseItem} />}
-            </div>
+          <div className="flex-1 overflow-auto">
+            <InventoryTab player={playerState} onUseItem={handleUseItem} />
           </div>
         </div>
+
+        {/* Center: Chat */}
+        <div className="flex-1 flex flex-col bg-slate-900/50">
+          <DialogueWindow
+            messages={messages}
+            onSendMessage={handleUserAction}
+            isThinking={isThinking}
+            quickActions={quickActions}
+          />
+        </div>
+
+        {/* Right: Character Info */}
+        <div className="hidden md:flex w-80 border-l border-slate-700/50 bg-slate-800/30 backdrop-blur-sm flex-col">
+          <div className="px-4 py-3 bg-slate-800/50 border-b border-slate-700/50">
+            <h2 className="text-lg font-bold text-white">👤 Character</h2>
+          </div>
+          <div className="flex-1 overflow-auto">
+            <CharacterTab player={playerState} />
+          </div>
+        </div>
+      </div>
+
+      {/* Mobile: Bottom tabs */}
+      <div className="md:hidden bg-slate-800 border-t border-slate-700 flex">
+        <button className="flex-1 py-3 text-purple-400 font-semibold">
+          💬 Chat
+        </button>
+        <button className="flex-1 py-3 text-slate-400">
+          📦 Items
+        </button>
+        <button className="flex-1 py-3 text-slate-400">
+          👤 Info
+        </button>
       </div>
     </div>
   );

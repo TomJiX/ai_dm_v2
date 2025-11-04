@@ -1,13 +1,14 @@
 /**
- * OpenAI API Service
- * Handles communication with OpenAI's GPT-4 for narrative generation
+ * GitHub Models API Service (Azure)
+ * Handles communication with GitHub Models via Azure endpoint for narrative generation
  */
 
 import OpenAI from 'openai';
 
-const openai = new OpenAI({
-  apiKey: import.meta.env.VITE_OPENAI_API_KEY,
-  dangerouslyAllowBrowser: true // Note: In production, proxy through backend
+const githubModels = new OpenAI({
+  apiKey: import.meta.env.VITE_GITHUB_TOKEN,
+  baseURL: 'https://models.inference.ai.azure.com',
+  dangerouslyAllowBrowser: true
 });
 
 /**
@@ -19,7 +20,7 @@ const openai = new OpenAI({
  */
 export async function generateDMResponse(systemPrompt, userPrompt, temperature = 0.7) {
   try {
-    const response = await copilot.chat.completions.create({
+    const response = await githubModels.chat.completions.create({
       model: 'gpt-4o',
       messages: [
         {
@@ -37,7 +38,7 @@ export async function generateDMResponse(systemPrompt, userPrompt, temperature =
     
     return response.choices[0].message.content;
   } catch (error) {
-    console.error('GitHub Copilot API Error:', error);
+    console.error('GitHub Models API Error:', error);
     
     if (error.status === 401) {
       throw new Error('Invalid GitHub token. Please check your .env.local file.');
@@ -60,7 +61,7 @@ export async function generateDMResponse(systemPrompt, userPrompt, temperature =
  */
 export async function streamDMResponse(systemPrompt, userPrompt, onChunk) {
   try {
-    const stream = await copilot.chat.completions.create({
+    const stream = await githubModels.chat.completions.create({
       model: 'gpt-4o',
       messages: [
         { role: 'system', content: systemPrompt },
@@ -83,7 +84,7 @@ export async function streamDMResponse(systemPrompt, userPrompt, onChunk) {
     
     return fullResponse;
   } catch (error) {
-    console.error('GitHub Copilot Streaming Error:', error);
+    console.error('GitHub Models Streaming Error:', error);
     throw new Error(`AI streaming error: ${error.message}`);
   }
 }

@@ -42,24 +42,27 @@ export default function DialogueWindow({
   };
   
   return (
-    <div className="h-full flex flex-col bg-gray-900">
+    <div className="h-full flex flex-col bg-slate-900/50">
       {/* Messages area */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar">
         {messages.length === 0 && (
-          <div className="text-center text-gray-500 mt-8">
-            <p className="text-lg">Welcome, Adventurer!</p>
-            <p className="text-sm mt-2">Your journey is about to begin...</p>
+          <div className="text-center text-slate-400 mt-12 animate-fade-in">
+            <div className="text-6xl mb-4">⚔️</div>
+            <p className="text-2xl font-bold text-gradient mb-2">Welcome, Adventurer!</p>
+            <p className="text-sm">Your epic journey is about to begin...</p>
           </div>
         )}
         
-        {messages.map((msg) => (
-          <Message key={msg.id} message={msg} />
+        {messages.map((msg, idx) => (
+          <div key={msg.id} className="animate-slide-up" style={{ animationDelay: `${idx * 0.05}s` }}>
+            <Message message={msg} />
+          </div>
         ))}
         
         {isThinking && (
-          <div className="flex items-center gap-2 text-gray-400 justify-center">
-            <Loader className="animate-spin" size={20} />
-            <span>The DM is thinking...</span>
+          <div className="flex items-center gap-3 text-purple-400 justify-center py-4 animate-pulse">
+            <Loader className="animate-spin" size={24} />
+            <span className="font-semibold">The DM is weaving your tale...</span>
           </div>
         )}
         
@@ -67,37 +70,37 @@ export default function DialogueWindow({
       </div>
       
       {/* Input area */}
-      <div className="border-t border-gray-700 p-4 bg-gray-900">
+      <div className="border-t border-slate-700/50 p-4 bg-slate-800/50 backdrop-blur-sm">
         {/* Quick actions */}
         {quickActions.length > 0 && !isThinking && (
-          <div className="flex flex-wrap gap-2 mb-3">
+          <div className="flex flex-wrap gap-2 mb-3 animate-fade-in">
             {quickActions.map((action, idx) => (
               <button
                 key={idx}
                 onClick={() => handleQuickAction(action)}
-                className="bg-gray-700 hover:bg-gray-600 px-3 py-1 rounded-full text-sm text-white transition"
+                className="bg-gradient-to-r from-slate-700 to-slate-600 hover:from-purple-600 hover:to-blue-600 px-4 py-2 rounded-full text-sm text-white transition-all transform hover:scale-105 shadow-lg hover:shadow-purple-500/50 font-medium"
               >
-                {action}
+                ✨ {action}
               </button>
             ))}
           </div>
         )}
         
         {/* Text input */}
-        <div className="flex gap-2">
+        <div className="flex gap-3">
           <textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyPress={handleKeyPress}
-            placeholder="What do you do?"
+            placeholder="What do you do? (Press Enter to send)"
             disabled={isThinking}
-            className="flex-1 bg-gray-800 text-white px-4 py-2 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+            className="flex-1 bg-slate-700 text-white px-5 py-3 rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50 placeholder-slate-400 border border-slate-600 focus:border-purple-500 transition-all shadow-lg"
             rows="2"
           />
           <button
             onClick={handleSend}
             disabled={!input.trim() || isThinking}
-            className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 disabled:cursor-not-allowed px-6 py-2 rounded-lg text-white transition flex items-center gap-2"
+            className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 disabled:from-slate-700 disabled:to-slate-700 disabled:cursor-not-allowed px-6 py-3 rounded-xl text-white transition-all flex items-center gap-2 shadow-lg hover:shadow-purple-500/50 transform hover:scale-105 active:scale-95 disabled:transform-none font-semibold"
           >
             <Send size={20} />
           </button>
