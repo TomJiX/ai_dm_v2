@@ -1,0 +1,17 @@
+{
+  "name": "ai-dm-mcp-server",
+  "version": "1.0.0",
+  "description": "MCP Server for AI Dungeon Master - handles dice rolls, state management, and combat",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js"
+  },
+  "keywords": ["mcp", "dnd", "rpg", "dice"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^0.5.0"
+  }
+}

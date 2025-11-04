@@ -1,0 +1,338 @@
+{
+  "title": "The Goblin Cave Rescue",
+  "description": "A merchant's daughter has been kidnapped by goblins. Rescue her from their cave hideout.",
+  "estimated_time": "45-60 minutes",
+  "difficulty": "Beginner-friendly",
+  
+  "story_anchors": [
+    "Receive quest from desperate merchant",
+    "Track goblins to their cave",
+    "Infiltrate or assault the cave",
+    "Find and rescue Elena",
+    "Defeat or negotiate with the goblin boss",
+    "Return Elena safely"
+  ],
+  
+  "scenes": {
+    "start": {
+      "title": "The Broken Wheel Tavern",
+      "description": "You're enjoying a quiet evening at the Broken Wheel Tavern when a distraught merchant bursts through the door. His clothes are torn, and dried blood stains his sleeve. 'Please! Anyone! They took my daughter! The goblins... they took Elena!' He collapses at a nearby table, tears streaming down his weathered face.",
+      "npcs": [
+        {
+          "name": "Marcus the Merchant",
+          "personality": "Desperate, grateful, protective father",
+          "knows": "Goblins ambushed his caravan on the Old Forest Road. They took his daughter Elena (age 16) and fled into the Thornwood. He saw them heading toward the rocky hills. He'll pay 100 gold for her safe return."
+        },
+        {
+          "name": "Bartender Greta",
+          "personality": "Tough, practical, has seen everything",
+          "knows": "Goblins have been getting bolder lately. There's an old cave system in the Thornwood hills - locals avoid it. She can sell a healing potion for 10 gold."
+        }
+      ],
+      "exits": ["forest_path"],
+      "items": ["Healing Potion (can buy for 10 gold)"],
+      "skill_checks": [
+        {
+          "skill": "Persuasion",
+          "dc": 10,
+          "success": "Marcus gives you a crude map showing the approximate location of the cave system and adds 20 gold to the reward.",
+          "failure": "Marcus is too distraught to provide more details, but still begs you to help."
+        }
+      ]
+    },
+    
+    "forest_path": {
+      "title": "The Old Forest Road",
+      "description": "The forest path is dim and winding. Gnarled trees block out most of the moonlight. You notice broken branches and disturbed earth - signs of a struggle and hurried flight. Small, clawed footprints lead deeper into the woods.",
+      "npcs": [],
+      "exits": ["cave_entrance", "ambush_site"],
+      "items": ["Torn piece of fine cloth (Elena's dress)"],
+      "skill_checks": [
+        {
+          "skill": "Survival",
+          "dc": 12,
+          "success": "You follow the goblin tracks expertly, avoiding obvious trails and finding a hidden path that leads directly to the cave entrance.",
+          "failure": "You follow the tracks but make enough noise that the goblins hear you coming."
+        },
+        {
+          "skill": "Perception",
+          "dc": 14,
+          "success": "You notice a tripwire across the path! It's connected to a crude alarm system. You carefully step over it.",
+          "failure": "You miss the tripwire and trigger it - bells jingle in the distance. The goblins know someone is coming."
+        }
+      ],
+      "encounters": [
+        {
+          "type": "optional_combat",
+          "trigger": "If player failed Perception check or makes noise",
+          "enemies": [
+            {
+              "name": "Goblin Scout",
+              "hp": 7,
+              "ac": 13,
+              "attack": "+4 to hit, 1d6+2 damage (scimitar)",
+              "tactics": "Tries to flee after taking damage to warn others"
+            }
+          ]
+        }
+      ]
+    },
+    
+    "ambush_site": {
+      "title": "Site of the Ambush",
+      "description": "An overturned cart lies on its side, its contents scattered across the road. Crates of fine fabrics and spices are torn open. Dried blood stains the ground. This is where the merchant's caravan was attacked.",
+      "npcs": [],
+      "exits": ["forest_path", "cave_entrance"],
+      "items": ["Goblin arrow (crude but effective)", "Spilled spices"],
+      "skill_checks": [
+        {
+          "skill": "Investigation",
+          "dc": 13,
+          "success": "You find clear signs: six goblins attacked, dragging someone (Elena) toward the northeast. You also find a dropped goblin knife that gives you insight into their lair's location.",
+          "failure": "The scene is chaotic and you can only determine the general direction the goblins went."
+        }
+      ]
+    },
+    
+    "cave_entrance": {
+      "title": "The Goblin Cave Entrance",
+      "description": "A dark cave mouth yawns before you, carved into a rocky hillside. The stench of unwashed bodies and rotting meat wafts from within. Crude totems made of bones and feathers mark the entrance. You hear faint voices and laughter echoing from deep inside.",
+      "npcs": [
+        {
+          "name": "Goblin Guard (x2)",
+          "personality": "Cowardly, aggressive when in groups",
+          "knows": "The boss Krazak is keeping a human girl in the 'special cave' to ransom later. There are four other goblins inside."
+        }
+      ],
+      "exits": ["main_chamber", "forest_path"],
+      "encounters": [
+        {
+          "type": "combat",
+          "enemies": [
+            {
+              "name": "Goblin Guard #1",
+              "hp": 7,
+              "ac": 13,
+              "attack": "+4 to hit, 1d6+2 damage (scimitar)",
+              "special": "Can use bonus action to disengage"
+            },
+            {
+              "name": "Goblin Guard #2",
+              "hp": 7,
+              "ac": 13,
+              "attack": "+4 to hit, 1d6+2 damage (scimitar)",
+              "special": "Can use bonus action to disengage"
+            }
+          ]
+        }
+      ],
+      "skill_checks": [
+        {
+          "skill": "Stealth",
+          "dc": 14,
+          "success": "You sneak past the guards while they're arguing over dice. You can surprise the goblins inside.",
+          "failure": "The guards notice you! Roll initiative."
+        },
+        {
+          "skill": "Intimidation",
+          "dc": 15,
+          "success": "The guards are terrified by your fierce appearance and flee into the cave, alerting others but leaving the entrance clear.",
+          "failure": "The guards laugh at your attempt and attack!"
+        }
+      ]
+    },
+    
+    "main_chamber": {
+      "title": "The Main Chamber",
+      "description": "The cave opens into a large chamber lit by sputtering torches. Crude bedrolls and stolen goods are scattered everywhere. Three goblins are gathered around a small fire, cooking something that smells absolutely foul. They haven't noticed you yet - or have they?",
+      "npcs": [],
+      "exits": ["cave_entrance", "prison_tunnel", "boss_chamber"],
+      "items": ["Stolen goods (worth 30 gold)", "Moldy bread", "Healing Potion"],
+      "encounters": [
+        {
+          "type": "combat",
+          "enemies": [
+            {
+              "name": "Goblin Warrior #1",
+              "hp": 10,
+              "ac": 14,
+              "attack": "+4 to hit, 1d8+2 damage (morningstar)",
+              "special": "Has shield, bonus action to shove"
+            },
+            {
+              "name": "Goblin Warrior #2",
+              "hp": 10,
+              "ac": 14,
+              "attack": "+4 to hit, 1d6+2 damage (scimitar)"
+            },
+            {
+              "name": "Goblin Archer",
+              "hp": 7,
+              "ac": 13,
+              "attack": "+4 to hit, 1d6+2 damage (shortbow)",
+              "special": "Stays at range, shoots from behind cover"
+            }
+          ]
+        }
+      ],
+      "skill_checks": [
+        {
+          "skill": "Stealth",
+          "dc": 13,
+          "success": "You slip past the distracted goblins, hearing one mention 'the girl in the back cave.'",
+          "failure": "A goblin spots you! Initiative!"
+        }
+      ]
+    },
+    
+    "prison_tunnel": {
+      "title": "The Prison Tunnel",
+      "description": "A narrow, damp tunnel leads to a small alcove blocked by crude wooden bars. Inside, you see a young woman in a torn dress, huddled in the corner. Her eyes widen with hope when she sees you.",
+      "npcs": [
+        {
+          "name": "Elena",
+          "personality": "Frightened but brave, grateful",
+          "knows": "The goblin boss Krazak plans to ransom her. He's very dangerous and has a magic amulet that protects him. There's a back exit from his chamber that leads outside."
+        }
+      ],
+      "exits": ["main_chamber"],
+      "items": ["Rusty key (on wall)", "Empty water bucket"],
+      "skill_checks": [
+        {
+          "skill": "Athletics",
+          "dc": 12,
+          "success": "You break open the wooden bars with a mighty blow!",
+          "failure": "The bars hold firm. You need to find the key or try another approach."
+        },
+        {
+          "skill": "Thieves' Tools",
+          "dc": 10,
+          "success": "You pick the crude lock easily.",
+          "failure": "The lock is stuck. You need to find another way."
+        }
+      ]
+    },
+    
+    "boss_chamber": {
+      "title": "Krazak's Throne Room",
+      "description": "The largest chamber is decorated with tattered banners and piles of stolen treasure. At the far end, sitting on a makeshift throne of old furniture, is the biggest goblin you've ever seen. Krazak the Cunning wears mismatched armor and a glowing red amulet around his neck. Two dire wolves lounge at his feet.",
+      "npcs": [
+        {
+          "name": "Krazak the Cunning",
+          "personality": "Arrogant, cunning, willing to negotiate",
+          "knows": "He kidnapped Elena to ransom her for 500 gold. He might be convinced to trade her for something valuable, or if intimidated enough. He's proud of his amulet (Fire Resistance Ring)."
+        }
+      ],
+      "exits": ["main_chamber", "secret_exit"],
+      "items": ["Treasure chest (100 gold, Fire Resistance Ring)", "Krazak's throne"],
+      "encounters": [
+        {
+          "type": "boss_combat",
+          "enemies": [
+            {
+              "name": "Krazak the Cunning",
+              "hp": 27,
+              "ac": 15,
+              "attack": "+5 to hit, 2d6+3 damage (greataxe)",
+              "special": "Fire Resistance Ring (resistance to fire damage), can command wolves as bonus action, cunning action"
+            },
+            {
+              "name": "Dire Wolf #1",
+              "hp": 15,
+              "ac": 13,
+              "attack": "+5 to hit, 2d6+3 damage (bite)",
+              "special": "Pack tactics: advantage if ally is within 5 feet of target"
+            },
+            {
+              "name": "Dire Wolf #2",
+              "hp": 15,
+              "ac": 13,
+              "attack": "+5 to hit, 2d6+3 damage (bite)",
+              "special": "Pack tactics: advantage if ally is within 5 feet of target"
+            }
+          ]
+        }
+      ],
+      "skill_checks": [
+        {
+          "skill": "Persuasion",
+          "dc": 16,
+          "success": "Krazak agrees to release Elena if you give him 50 gold and promise to leave immediately. He keeps the rest of his treasure.",
+          "failure": "Krazak laughs at your offer. 'You want girl? You fight for girl!'"
+        },
+        {
+          "skill": "Intimidation",
+          "dc": 18,
+          "success": "Your fierce demeanor terrifies Krazak. He releases Elena and flees through the secret exit with his wolves.",
+          "failure": "Krazak is insulted and orders his wolves to attack!"
+        },
+        {
+          "skill": "Deception",
+          "dc": 17,
+          "success": "You convince Krazak that a massive adventuring party is right behind you. He panics and flees, leaving Elena and his treasure.",
+          "failure": "Krazak sees through your bluff. 'You lie! You die!'"
+        }
+      ]
+    },
+    
+    "secret_exit": {
+      "title": "Hidden Back Exit",
+      "description": "A narrow crack in the cave wall leads to a concealed exit. Fresh air flows through, and you can see moonlight ahead. This leads back to the forest, far from the main entrance.",
+      "npcs": [],
+      "exits": ["forest_path"],
+      "items": [],
+      "skill_checks": [
+        {
+          "skill": "Perception",
+          "dc": 15,
+          "success": "You spot this hidden exit from inside the boss chamber, offering an escape route.",
+          "failure": "You don't notice the hidden passage."
+        }
+      ]
+    }
+  },
+  
+  "win_conditions": [
+    {
+      "condition": "elena_rescued",
+      "description": "Return Elena safely to her father",
+      "reward": "100 gold (or 120 gold if you got the map earlier)",
+      "narrative": "Marcus weeps with joy as he embraces his daughter. He presses a heavy coin purse into your hands and thanks you profusely. Elena gives you a grateful hug. The tavern patrons cheer your heroism, and Greta pours you a free ale. You've become a local hero!"
+    }
+  ],
+  
+  "lose_conditions": [
+    {
+      "condition": "player_death",
+      "description": "Player dies in combat",
+      "narrative": "Darkness closes in as you fall. Your last thought is of the mission left unfinished. Perhaps another hero will succeed where you failed..."
+    },
+    {
+      "condition": "elena_dies",
+      "description": "Elena is killed (if combat reaches her location)",
+      "narrative": "You failed to protect Elena. Marcus's grief is unbearable. The quest has ended in tragedy."
+    }
+  ],
+  
+  "rules": {
+    "skill_checks": "Roll 1d20 + ability modifier. Meet or beat the DC to succeed. Natural 20 is automatic success, natural 1 is automatic failure.",
+    "combat": "Initiative (1d20 + DEX modifier) determines turn order. On your turn: move + action. Attack roll (1d20 + bonus) vs enemy AC. If hit, roll damage dice. At 0 HP, roll death saves.",
+    "death_saves": "When at 0 HP, roll 1d20 each turn. 10+ is a success, below 10 is a failure. Three successes = stabilized, three failures = death. Natural 20 = regain 1 HP, natural 1 = two failures.",
+    "advantage_disadvantage": "Roll 2d20, take higher (advantage) or lower (disadvantage).",
+    "short_rest": "Can spend 1 hour to roll hit dice (1d10) + CON modifier to regain HP. Regain some abilities.",
+    "healing_potions": "Drinking a potion is an action. Potion of Healing restores 2d4+2 HP."
+  },
+  
+  "dm_guidance": {
+    "tone": "Exciting but not dark. This is a heroic rescue mission.",
+    "pacing": "Allow exploration and roleplay, but keep action moving. Encourage creative solutions.",
+    "difficulty_adjustment": "If player struggles in combat, have enemies flee or surrender. If player dominates, add reinforcements or environmental hazards.",
+    "multiple_solutions": "Support combat, stealth, and negotiation approaches. Reward creativity.",
+    "key_moments": [
+      "Marcus's desperate plea sets emotional stakes",
+      "Finding Elena alive creates relief and urgency",
+      "Boss fight or negotiation is the climax",
+      "Returning Elena creates satisfying conclusion"
+    ]
+  }
+}
