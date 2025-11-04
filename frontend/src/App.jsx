@@ -173,6 +173,7 @@ function App() {
     try {
       // Pre-check for item usage intent and validate inventory
       const intent = parseUseIntent(input);
+      let inputForAI = input;
       if (intent) {
         const found = findInventoryItem(intent.item);
         if (!found) {
@@ -182,6 +183,9 @@ function App() {
           });
           return; // do not send to AI
         }
+        // Provide an explicit hint to the DM that this is a validated item use
+        const displayName = typeof found === 'string' ? found : (found.name || intent.item);
+        inputForAI = `${input}\n[action: use_item: ${displayName}]`;
       }
 
       // Add user message
@@ -197,7 +201,7 @@ function App() {
         scene,
         playerState,
         messages.slice(-10),
-        input
+        inputForAI
       );
       
       // Get AI response
