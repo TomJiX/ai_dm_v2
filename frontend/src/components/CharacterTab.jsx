@@ -8,7 +8,7 @@ import { getModifiers } from '../data/initialState';
 export default function CharacterTab({ player }) {
   if (!player) {
     return (
-      <div className="p-6 text-center text-gray-400">
+      <div className="p-6 text-center text-purple-400">
         Loading character...
       </div>
     );
@@ -18,9 +18,9 @@ export default function CharacterTab({ player }) {
   const modifiers = getModifiers(player.stats);
   
   function getHPColor(percentage) {
-    if (percentage > 50) return 'bg-green-500';
-    if (percentage > 25) return 'bg-yellow-500';
-    return 'bg-red-500';
+    if (percentage > 50) return 'bg-gradient-to-r from-green-500 to-emerald-500';
+    if (percentage > 25) return 'bg-gradient-to-r from-yellow-500 to-orange-500';
+    return 'bg-gradient-to-r from-red-500 to-rose-500';
   }
   
   function formatModifier(value) {
@@ -28,34 +28,37 @@ export default function CharacterTab({ player }) {
   }
   
   return (
-    <div className="p-6 space-y-6 bg-slate-900/50 text-white overflow-y-auto h-full custom-scrollbar">
+    <div className="p-4 space-y-4 text-white h-full">
       {/* Header */}
       <div className="text-center p-4 bg-gradient-to-br from-purple-900/50 to-blue-900/50 rounded-xl border border-purple-500/30 shadow-xl">
-        <h2 className="text-3xl font-bold text-gradient mb-1">{player.name}</h2>
-        <p className="text-slate-300 font-medium">{player.race} {player.class}</p>
+        <h2 className="text-2xl font-bold text-gradient mb-1">{player.name}</h2>
+        <p className="text-purple-300 font-medium">{player.race} {player.class}</p>
         <p className="text-slate-400 text-sm">Level {player.level}</p>
       </div>
       
       {/* HP Bar */}
-      <div className="p-4 bg-slate-800/50 rounded-xl border border-slate-700/50 shadow-lg">
+      <div className="p-4 bg-gradient-to-br from-red-900/30 to-rose-900/20 rounded-xl border border-red-500/30 shadow-lg">
         <div className="flex justify-between mb-2">
-          <span className="font-bold text-slate-200">❤️ Hit Points</span>
+          <span className="font-bold text-red-200 flex items-center gap-1">
+            <span className="text-xl">❤️</span>
+            Hit Points
+          </span>
           <span className="font-bold text-lg">
-            <span className={hpPercentage <= 25 ? 'text-red-400 animate-pulse' : 'text-white'}>
+            <span className={hpPercentage <= 25 ? 'text-red-300 animate-pulse' : 'text-white'}>
               {player.hp.current}
             </span>
-            <span className="text-slate-500"> / {player.hp.max}</span>
+            <span className="text-slate-400"> / {player.hp.max}</span>
           </span>
         </div>
-        <div className="h-5 bg-slate-700 rounded-full overflow-hidden shadow-inner">
+        <div className="h-5 bg-slate-900/60 rounded-full overflow-hidden shadow-inner border border-slate-700/50">
           <div 
             className={`h-full transition-all duration-500 ${getHPColor(hpPercentage)} shadow-lg`}
             style={{ width: `${Math.max(hpPercentage, 3)}%` }}
           />
         </div>
         {player.hp.current === 0 && (
-          <div className="mt-2 p-2 bg-red-900/50 border border-red-500 rounded-lg animate-pulse">
-            <p className="text-red-300 text-sm font-bold text-center">
+          <div className="mt-2 p-2 bg-red-900/70 border border-red-500 rounded-lg animate-pulse">
+            <p className="text-red-200 text-sm font-bold text-center">
               💀 UNCONSCIOUS - Make death saving throws!
             </p>
           </div>
@@ -63,12 +66,12 @@ export default function CharacterTab({ player }) {
       </div>
       
       {/* AC */}
-      <div className="flex items-center gap-3 bg-gradient-to-br from-blue-900/50 to-blue-800/30 p-4 rounded-xl border border-blue-500/30 shadow-lg">
-        <div className="p-3 bg-blue-600/30 rounded-lg">
-          <Shield size={28} className="text-blue-300" />
+      <div className="flex items-center gap-3 bg-gradient-to-br from-blue-900/40 to-cyan-900/30 p-4 rounded-xl border border-blue-500/40 shadow-lg">
+        <div className="p-3 bg-blue-600/40 rounded-lg shadow-inner">
+          <Shield size={28} className="text-blue-200" />
         </div>
         <div className="flex-1">
-          <p className="text-sm text-slate-400">Armor Class</p>
+          <p className="text-sm text-blue-200">Armor Class</p>
           <p className="text-3xl font-bold text-white">{player.ac}</p>
         </div>
       </div>
@@ -76,22 +79,33 @@ export default function CharacterTab({ player }) {
       {/* Ability Scores */}
       <div>
         <h3 className="font-bold mb-3 text-lg text-slate-200 flex items-center gap-2">
-          ⚡ Ability Scores
+          <span className="text-xl">⚡</span>
+          <span className="bg-gradient-to-r from-yellow-400 to-orange-400 bg-clip-text text-transparent">Ability Scores</span>
         </h3>
         <div className="grid grid-cols-3 gap-2">
-          {Object.entries(player.stats).map(([stat, value]) => (
-            <div key={stat} className="text-center p-3 bg-slate-800/50 rounded-lg border border-slate-700/50 hover:border-purple-500/50 transition-all hover:scale-105 shadow-md">
-              <p className="text-xs text-slate-400 uppercase font-semibold mb-1">
-                {stat.slice(0, 3)}
-              </p>
-              <p className="text-2xl font-bold text-white">{value}</p>
-              <p className={`text-sm font-bold ${
-                modifiers[stat] >= 0 ? 'text-green-400' : 'text-red-400'
-              }`}>
-                {formatModifier(modifiers[stat])}
-              </p>
-            </div>
-          ))}
+          {Object.entries(player.stats).map(([stat, value], idx) => {
+            const colors = [
+              'from-red-600/30 to-red-500/20 border-red-500/30',
+              'from-orange-600/30 to-orange-500/20 border-orange-500/30',
+              'from-yellow-600/30 to-yellow-500/20 border-yellow-500/30',
+              'from-green-600/30 to-green-500/20 border-green-500/30',
+              'from-blue-600/30 to-blue-500/20 border-blue-500/30',
+              'from-purple-600/30 to-purple-500/20 border-purple-500/30'
+            ];
+            return (
+              <div key={stat} className={`text-center p-3 bg-gradient-to-br ${colors[idx]} rounded-lg border transition-all hover:scale-105 shadow-md hover:shadow-lg`}>
+                <p className="text-xs text-slate-300 uppercase font-semibold mb-1">
+                  {stat.slice(0, 3)}
+                </p>
+                <p className="text-2xl font-bold text-white">{value}</p>
+                <p className={`text-sm font-bold ${
+                  modifiers[stat] >= 0 ? 'text-green-300' : 'text-red-300'
+                }`}>
+                  {formatModifier(modifiers[stat])}
+                </p>
+              </div>
+            );
+          })}
         </div>
       </div>
       

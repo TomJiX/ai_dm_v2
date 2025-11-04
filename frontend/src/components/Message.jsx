@@ -51,7 +51,7 @@ export default function Message({ message }) {
   if (message.role === 'user') {
     return (
       <div className="flex justify-end">
-        <div className="bg-gradient-to-br from-blue-600 to-blue-700 text-white p-4 rounded-2xl max-w-[80%] ml-8 shadow-lg shadow-blue-900/50">
+        <div className="bg-gradient-to-br from-blue-500 to-cyan-600 text-white p-4 rounded-2xl max-w-[80%] ml-8 shadow-xl border-2 border-blue-400/50">
           <p className="whitespace-pre-wrap leading-relaxed font-medium">{message.content}</p>
         </div>
       </div>
@@ -61,9 +61,9 @@ export default function Message({ message }) {
   // DM narrative message
   return (
     <div className="flex justify-start">
-      <div className="bg-gradient-to-br from-slate-800 to-slate-700 text-white p-4 rounded-2xl max-w-[80%] mr-8 shadow-lg border border-slate-700/50">
+      <div className="bg-gradient-to-br from-purple-800 to-slate-800 text-white p-4 rounded-2xl max-w-[80%] mr-8 shadow-xl border-2 border-purple-600/50">
         <div className="flex items-start gap-2 mb-2">
-          <span className="text-purple-400 font-bold text-xs">🎲 DM</span>
+          <span className="text-purple-300 font-bold text-xs">🎲 DM</span>
         </div>
         <p className="whitespace-pre-wrap leading-relaxed">{message.content}</p>
       </div>

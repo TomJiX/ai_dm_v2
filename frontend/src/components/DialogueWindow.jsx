@@ -42,14 +42,14 @@ export default function DialogueWindow({
   };
   
   return (
-    <div className="h-full flex flex-col bg-slate-900/50">
+    <div className="h-full flex flex-col bg-transparent">
       {/* Messages area */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar">
+      <div className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar bg-gradient-to-b from-transparent via-slate-900/30 to-transparent">
         {messages.length === 0 && (
-          <div className="text-center text-slate-400 mt-12 animate-fade-in">
-            <div className="text-6xl mb-4">⚔️</div>
-            <p className="text-2xl font-bold text-gradient mb-2">Welcome, Adventurer!</p>
-            <p className="text-sm">Your epic journey is about to begin...</p>
+          <div className="text-center mt-12 animate-fade-in">
+            <div className="text-8xl mb-6 animate-pulse">⚔️</div>
+            <p className="text-4xl font-bold bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 bg-clip-text text-transparent mb-3">Welcome, Adventurer!</p>
+            <p className="text-lg text-purple-300">Your epic journey is about to begin...</p>
           </div>
         )}
         
@@ -70,7 +70,7 @@ export default function DialogueWindow({
       </div>
       
       {/* Input area */}
-      <div className="border-t border-slate-700/50 p-4 bg-slate-800/50 backdrop-blur-sm">
+      <div className="border-t border-purple-500/20 p-4 bg-gradient-to-r from-slate-800/90 via-slate-900/90 to-slate-800/90 backdrop-blur-sm shadow-lg">
         {/* Quick actions */}
         {quickActions.length > 0 && !isThinking && (
           <div className="flex flex-wrap gap-2 mb-3 animate-fade-in">
@@ -78,7 +78,7 @@ export default function DialogueWindow({
               <button
                 key={idx}
                 onClick={() => handleQuickAction(action)}
-                className="bg-gradient-to-r from-slate-700 to-slate-600 hover:from-purple-600 hover:to-blue-600 px-4 py-2 rounded-full text-sm text-white transition-all transform hover:scale-105 shadow-lg hover:shadow-purple-500/50 font-medium"
+                className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 px-4 py-2 rounded-full text-sm text-white transition-all transform hover:scale-110 shadow-lg border-2 border-purple-400/50 font-semibold"
               >
                 ✨ {action}
               </button>
@@ -94,13 +94,13 @@ export default function DialogueWindow({
             onKeyPress={handleKeyPress}
             placeholder="What do you do? (Press Enter to send)"
             disabled={isThinking}
-            className="flex-1 bg-slate-700 text-white px-5 py-3 rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50 placeholder-slate-400 border border-slate-600 focus:border-purple-500 transition-all shadow-lg"
+            className="flex-1 bg-slate-800 text-white px-5 py-3 rounded-xl resize-none focus:outline-none focus:ring-4 focus:ring-purple-500/50 disabled:opacity-50 placeholder-slate-400 border-2 border-purple-600/30 focus:border-purple-500 transition-all shadow-lg"
             rows="2"
           />
           <button
             onClick={handleSend}
             disabled={!input.trim() || isThinking}
-            className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 disabled:from-slate-700 disabled:to-slate-700 disabled:cursor-not-allowed px-6 py-3 rounded-xl text-white transition-all flex items-center gap-2 shadow-lg hover:shadow-purple-500/50 transform hover:scale-105 active:scale-95 disabled:transform-none font-semibold"
+            className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-cyan-500 disabled:from-slate-700 disabled:to-slate-700 disabled:cursor-not-allowed px-6 py-3 rounded-xl text-white transition-all flex items-center gap-2 shadow-xl border-2 border-purple-400/50 hover:shadow-purple-500/70 transform hover:scale-105 active:scale-95 disabled:transform-none font-bold"
           >
             <Send size={20} />
           </button>
