@@ -209,6 +209,23 @@ class MCPClient {
     if (!(key in this.state)) {
       return { success: false, message: `Key '${key}' not found` };
     }
+    // Special handling for player inventory so we don't overwrite arrays accidentally
+    if (key === 'player' && updates && typeof updates === 'object') {
+      const current = this.state.player || {};
+      const next = { ...current };
+
+      // Handle inventory updates additively
+      if (Object.prototype.hasOwnProperty.call(updates, 'inventory')) {
+        next.inventory = this.mergeInventory(current.inventory || [], updates.inventory);
+      }
+
+      // Merge the rest using deepMerge
+      const { inventory, ...rest } = updates;
+      const merged = this.deepMerge(next, rest);
+      this.state.player = merged;
+      return { success: true, key, value: this.state.player };
+    }
+
     this.state[key] = this.deepMerge(this.state[key], updates);
     return { success: true, key, value: this.state[key] };
   }
@@ -238,6 +255,63 @@ class MCPClient {
       }
     }
     return output;
+  }
+
+  // === Inventory helpers ===
+  normalizeItem(it) {
+    if (!it) return null;
+    if (typeof it === 'string') return { name: it, quantity: 1 };
+    if (typeof it === 'object') {
+      const name = it.name || '';
+      const qty = typeof it.quantity === 'number' && it.quantity > 0 ? it.quantity : 1;
+      return { name, quantity: qty };
+    }
+    return null;
+  }
+
+  mergeInventory(current, patch) {
+    const inv = (current || []).map(it => this.normalizeItem(it)).filter(Boolean);
+    const addItem = (item, qty = 1) => {
+      const norm = this.normalizeItem(item);
+      if (!norm || !norm.name) return;
+      const idx = inv.findIndex(x => (x.name || '').toLowerCase() === norm.name.toLowerCase());
+      if (idx >= 0) {
+        inv[idx].quantity = (inv[idx].quantity || 1) + (qty || norm.quantity || 1);
+      } else {
+        inv.push({ name: norm.name, quantity: qty || norm.quantity || 1 });
+      }
+    };
+    const removeItem = (name, qty = 1) => {
+      if (!name) return;
+      const idx = inv.findIndex(x => (x.name || '').toLowerCase() === String(name).toLowerCase());
+      if (idx >= 0) {
+        const newQty = (inv[idx].quantity || 1) - (qty || 1);
+        if (newQty > 0) inv[idx].quantity = newQty; else inv.splice(idx, 1);
+      }
+    };
+
+    if (Array.isArray(patch)) {
+      patch.forEach(p => addItem(p));
+      return inv;
+    }
+    if (typeof patch === 'string') {
+      addItem(patch);
+      return inv;
+    }
+    if (patch && typeof patch === 'object') {
+      if (Object.prototype.hasOwnProperty.call(patch, 'add')) {
+        const qty = patch.quantity || 1;
+        addItem(patch.add, qty);
+        return inv;
+      }
+      if (Object.prototype.hasOwnProperty.call(patch, 'remove')) {
+        const qty = patch.quantity || 1;
+        removeItem(patch.remove, qty);
+        return inv;
+      }
+    }
+    // Fallback: ignore unknown formats to avoid destructive overwrites
+    return inv;
   }
 
   // === Combat ===

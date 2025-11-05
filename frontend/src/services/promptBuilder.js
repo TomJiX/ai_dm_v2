@@ -63,6 +63,10 @@ Available tools:
   
 - update_state: {key: "player", updates: {hp: {current: 22}, location: "main_chamber"}}
   Use to update player state (location, inventory, conditions, flags, etc.)
+  For inventory, prefer additive formats to avoid overwriting:
+  - Add item: update_state { key: "player", updates: { inventory: { add: { name: "Map", quantity: 1 } } } }
+  - Remove item: update_state { key: "player", updates: { inventory: { remove: "Map", quantity: 1 } } }
+  - You can also add with an array: update_state { key: "player", updates: { inventory: ["Map"] } }
   
 - roll_initiative: {dexModifier: 1}
   Use at start of combat

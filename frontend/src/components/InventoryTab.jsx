@@ -1,10 +1,13 @@
-import { Package } from 'lucide-react';
+import { Package, PlusCircle, MinusCircle, Trash2 } from 'lucide-react';
 
 /**
  * InventoryTab Component
  * Displays player inventory
  */
-export default function InventoryTab({ player, onUseItem }) {
+import { useState } from 'react';
+
+export default function InventoryTab({ player, onUseItem, onAddItem, onRemoveItem }) {
+  const [newItemName, setNewItemName] = useState('');
   if (!player) {
     return (
       <div className="p-6 text-center text-purple-400">
@@ -14,7 +17,25 @@ export default function InventoryTab({ player, onUseItem }) {
   }
   
   return (
-    <div className="p-4 text-white h-full">      
+    <div className="p-4 text-white h-full">     
+      {/* Manage bar */}
+      <div className="mb-3 flex items-center gap-2">
+        <input
+          type="text"
+          value={newItemName}
+          onChange={(e) => setNewItemName(e.target.value)}
+          placeholder="Add item (e.g., Map)"
+          className="flex-1 px-3 py-2 bg-slate-800/70 border border-slate-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/40"
+        />
+        <button
+          onClick={() => { if (newItemName.trim()) { onAddItem?.(newItemName.trim()); setNewItemName(''); } }}
+          className="flex items-center gap-1 bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-500 hover:to-green-500 text-white px-3 py-2 rounded-lg text-sm shadow"
+          title="Add Item"
+        >
+          <PlusCircle size={16} /> Add
+        </button>
+      </div>
+      
       {player.inventory && player.inventory.length > 0 ? (
         <div className="space-y-2">
           {player.inventory.map((item, idx) => {
@@ -46,11 +67,27 @@ export default function InventoryTab({ player, onUseItem }) {
                       {itemName}
                     </span>
                   </div>
-                  {itemQuantity > 1 && (
-                    <span className="text-xs bg-gradient-to-r from-purple-600 to-blue-600 text-white px-2.5 py-1 rounded-full font-bold shadow-lg">
-                      ×{itemQuantity}
-                    </span>
-                  )}
+                  <div className="flex items-center gap-2">
+                    {itemQuantity > 1 && (
+                      <span className="text-xs bg-gradient-to-r from-purple-600 to-blue-600 text-white px-2.5 py-1 rounded-full font-bold shadow-lg">
+                        ×{itemQuantity}
+                      </span>
+                    )}
+                    <button
+                      className="p-1 rounded bg-slate-900/40 hover:bg-slate-900/70 border border-slate-700/60"
+                      title="Decrease quantity"
+                      onClick={() => onRemoveItem?.(itemName, 1)}
+                    >
+                      <MinusCircle size={14} />
+                    </button>
+                    <button
+                      className="p-1 rounded bg-slate-900/40 hover:bg-slate-900/70 border border-slate-700/60 text-red-300 hover:text-red-200"
+                      title="Remove item"
+                      onClick={() => onRemoveItem?.(itemName, itemQuantity || 1)}
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
                 </div>
 
                 {/* Hover info overlay */}

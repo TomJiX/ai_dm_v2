@@ -453,6 +453,68 @@ function App() {
     handleUserAction(`I use ${item}`);
   }
   
+  function manualAddItem(rawName, qty = 1) {
+    const name = (rawName || '').trim();
+    if (!name) return;
+    setPlayerState(prev => {
+      if (!prev) return prev;
+      const inv = Array.isArray(prev.inventory) ? [...prev.inventory] : [];
+      const target = sanitizeItemName(name);
+      let foundIndex = -1;
+      for (let i = 0; i < inv.length; i++) {
+        const nm = typeof inv[i] === 'string' ? inv[i] : (inv[i].name || '');
+        if (sanitizeItemName(nm) === target) { foundIndex = i; break; }
+      }
+      if (foundIndex >= 0) {
+        const cur = inv[foundIndex];
+        if (typeof cur === 'object') {
+          inv[foundIndex] = { ...cur, quantity: (cur.quantity || 1) + qty };
+        } else {
+          inv[foundIndex] = { name: cur, quantity: 1 + qty };
+        }
+      } else {
+        inv.push({ name, quantity: qty });
+      }
+      const next = { ...prev, inventory: inv };
+      mcpClient.callTool('save_state', { key: 'player', value: next });
+      addMessage({ type: 'system', content: `➕ Added ${name}${qty > 1 ? ` ×${qty}` : ''}.` });
+      return next;
+    });
+  }
+
+  function manualRemoveItem(rawName, qty = 1) {
+    const name = (rawName || '').trim();
+    if (!name) return;
+    setPlayerState(prev => {
+      if (!prev) return prev;
+      const inv = Array.isArray(prev.inventory) ? [...prev.inventory] : [];
+      const target = sanitizeItemName(name);
+      let foundIndex = -1;
+      for (let i = 0; i < inv.length; i++) {
+        const nm = typeof inv[i] === 'string' ? inv[i] : (inv[i].name || '');
+        if (sanitizeItemName(nm) === target) { foundIndex = i; break; }
+      }
+      if (foundIndex >= 0) {
+        const cur = inv[foundIndex];
+        let remaining = 0;
+        if (typeof cur === 'object') {
+          remaining = (cur.quantity || 1) - qty;
+        } else {
+          remaining = 1 - qty;
+        }
+        if (remaining > 0) {
+          inv[foundIndex] = typeof cur === 'object' ? { ...cur, quantity: remaining } : { name: cur, quantity: remaining };
+        } else {
+          inv.splice(foundIndex, 1);
+        }
+      }
+      const next = { ...prev, inventory: inv };
+      mcpClient.callTool('save_state', { key: 'player', value: next });
+      addMessage({ type: 'system', content: `➖ Removed ${name}${qty > 1 ? ` ×${qty}` : ''}.` });
+      return next;
+    });
+  }
+  
   function saveGame() {
     const saveData = {
       playerState,
@@ -616,7 +678,12 @@ function App() {
             </h2>
           </div>
           <div className="flex-1 overflow-auto custom-scrollbar">
-            <InventoryTab player={playerState} onUseItem={handleUseItem} />
+            <InventoryTab
+              player={playerState}
+              onUseItem={handleUseItem}
+              onAddItem={(name) => manualAddItem(name, 1)}
+              onRemoveItem={(name, qty) => manualRemoveItem(name, qty)}
+            />
           </div>
         </div>
 
