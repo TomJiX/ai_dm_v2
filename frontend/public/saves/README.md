@@ -1,0 +1,28 @@
+Place JSON save files here. On startup, the app will try to load `saves/autoload.json` if no local quicksave exists.
+
+Save format example (minimal):
+
+{
+  "playerState": {
+    "name": "AutoloadHero",
+    "class": "Fighter",
+    "level": 1,
+    "hp": { "current": 30, "max": 30 },
+    "ac": 15,
+    "stats": {
+      "strength": 16, "dexterity": 12, "constitution": 15,
+      "intelligence": 10, "wisdom": 11, "charisma": 10
+    },
+    "inventory": [
+      { "name": "Longsword", "quantity": 1 },
+      { "name": "Shield", "quantity": 1 },
+      { "name": "Rope (50 ft)", "quantity": 1 },
+      { "name": "Torch (3)", "quantity": 1 }
+    ],
+    "conditions": [],
+    "resources": { "gold": 25 }
+  },
+  "messages": [],
+  "currentScene": "start",
+  "timestamp": 0
+}

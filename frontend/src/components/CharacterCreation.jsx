@@ -68,11 +68,26 @@ export default function CharacterCreation({ onComplete }) {
   };
 
   const getFinalStats = () => {
-    if (!race) return baseStats;
     const finalStats = { ...baseStats };
-    Object.keys(race.bonus).forEach(stat => {
-      finalStats[stat] += race.bonus[stat];
-    });
+    // Apply race bonuses if chosen
+    if (race) {
+      Object.keys(race.bonus).forEach(stat => {
+        finalStats[stat] += race.bonus[stat];
+      });
+    }
+    // Apply simple class-based modifiers (keep it lightweight)
+    if (charClass) {
+      const classMods = {
+        fighter: { str: 2, con: 1 },
+        wizard: { int: 2, wis: 1 },
+        rogue: { dex: 2, int: 1 },
+        cleric: { wis: 2, cha: 1 }
+      };
+      const mods = classMods[charClass.id] || {};
+      Object.keys(mods).forEach(stat => {
+        finalStats[stat] += mods[stat];
+      });
+    }
     return finalStats;
   };
 

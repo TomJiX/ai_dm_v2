@@ -8,7 +8,8 @@ import { mcpClient } from './services/mcpClient';
 import { generateDMResponse } from './services/copilotService';
 import { buildDMPrompt, buildOpeningPrompt, buildToolResultsPrompt } from './services/promptBuilder';
 import { parseToolCalls, extractNarrative } from './services/toolParser';
-import { Save, Upload } from 'lucide-react';
+import { Save, Upload, RotateCcw, Download, UploadCloud } from 'lucide-react';
+import { saveService } from './services/saveService';
 
 function App() {
   const [showCharCreation, setShowCharCreation] = useState(true);
@@ -18,6 +19,7 @@ function App() {
   const [isThinking, setIsThinking] = useState(false);
   const [quickActions, setQuickActions] = useState([]);
   const hasInitialized = useRef(false);
+  const restoredOnLoad = useRef(false);
   
   async function handleCharacterCreated(character) {
     setShowCharCreation(false);
@@ -67,6 +69,46 @@ function App() {
       setIsThinking(false);
     }
   }
+
+  // Try to auto-load a quicksave on first mount
+  useEffect(() => {
+    if (restoredOnLoad.current) return;
+    restoredOnLoad.current = true;
+    try {
+      const res = saveService.load();
+      if (res.success && res.data) {
+        const { playerState: ps, messages: msgs, currentScene: scene } = res.data;
+        // Restore local React state
+        setPlayerState(ps);
+        setMessages(msgs || []);
+        setCurrentScene(scene || 'start');
+        setShowCharCreation(false);
+        // Also prime MCP state
+        mcpClient.callTool('save_state', { key: 'player', value: ps });
+        hasInitialized.current = true; // skip opening scene
+        addMessage({ type: 'system', content: '📂 Quicksave auto-loaded.' });
+        return;
+      }
+    } catch {}
+    // Fallback: try loading a project save from /saves/autoload.json if present
+    (async () => {
+      try {
+        const resp = await fetch('/saves/autoload.json', { cache: 'no-store' });
+        if (resp.ok) {
+          const data = await resp.json();
+          if (data?.playerState) {
+            await mcpClient.callTool('save_state', { key: 'player', value: data.playerState });
+            setPlayerState(data.playerState);
+            setMessages(data.messages || []);
+            setCurrentScene(data.currentScene || 'start');
+            setShowCharCreation(false);
+            hasInitialized.current = true;
+            addMessage({ type: 'system', content: '📂 Project save loaded (saves/autoload.json).' });
+          }
+        }
+      } catch {}
+    })();
+  }, []);
   
   function addMessage(message) {
     setMessages(prev => [...prev, {
@@ -94,46 +136,115 @@ function App() {
     setQuickActions(actions);
   }
   
+  // === Skill trigger rules and helpers ===
+  const SKILL_RULES = [
+    { skill: 'Athletics', ability: 'str', keywords: ['climb', 'jump', 'swim', 'grapple', 'shove'] },
+    { skill: 'Acrobatics', ability: 'dex', keywords: ['balance', 'tumble', 'flip', 'dodge', 'roll'] },
+    { skill: 'Stealth', ability: 'dex', keywords: ['sneak', 'creep', 'tiptoe', 'hide', 'skulk'] },
+    { skill: 'Sleight of Hand', ability: 'dex', keywords: ['pickpocket', 'palm', 'plant', 'steal', 'filch'] },
+    { skill: 'Perception', ability: 'wis', keywords: ['notice', 'spot', 'listen', 'scan', 'observe'] },
+    { skill: 'Insight', ability: 'wis', keywords: ['insight', 'read', 'motive', 'discern', 'sense motive'] },
+    { skill: 'Survival', ability: 'wis', keywords: ['track', 'forage', 'navigate', 'hunt', 'camp'] },
+    { skill: 'Investigation', ability: 'int', keywords: ['investigate', 'examine', 'inspect', 'analyze', 'search'] },
+    { skill: 'Arcana', ability: 'int', keywords: ['arcana', 'magic', 'spellcraft', 'occult', 'magical lore'] },
+    { skill: 'History', ability: 'int', keywords: ['history', 'recall lore', 'chronicle', 'historical', 'ancestry'] },
+    { skill: 'Nature', ability: 'int', keywords: ['nature', 'wilds', 'flora', 'fauna', 'geography'] },
+    { skill: 'Religion', ability: 'int', keywords: ['religion', 'deity', 'ritual', 'prayer', 'divinity'] },
+    { skill: 'Medicine', ability: 'wis', keywords: ['treat', 'heal', 'diagnose', 'first aid', 'bandage'] },
+    { skill: 'Deception', ability: 'cha', keywords: ['deceive', 'lie', 'bluff', 'trick', 'con'] },
+    { skill: 'Persuasion', ability: 'cha', keywords: ['persuade', 'convince', 'negotiate', 'appeal', 'entreat'] },
+    { skill: 'Intimidation', ability: 'cha', keywords: ['intimidate', 'threaten', 'coerce', 'menace', 'bully'] },
+    { skill: 'Performance', ability: 'cha', keywords: ['perform', 'sing', 'play', 'act', 'dance'] }
+  ];
+
+  function getAbilityScore(ability) {
+    if (!playerState?.stats) return 10;
+    const s = playerState.stats;
+    // Support both short and long keys
+    switch (ability) {
+      case 'str': return s.str ?? s.strength ?? 10;
+      case 'dex': return s.dex ?? s.dexterity ?? 10;
+      case 'con': return s.con ?? s.constitution ?? 10;
+      case 'int': return s.int ?? s.intelligence ?? 10;
+      case 'wis': return s.wis ?? s.wisdom ?? 10;
+      case 'cha': return s.cha ?? s.charisma ?? 10;
+      default: return 10;
+    }
+  }
+
+  function getAbilityModifier(ability) {
+    const score = getAbilityScore(ability);
+    return Math.floor((score - 10) / 2);
+  }
+
+  function parseSkillIntent(text) {
+    const t = text.toLowerCase();
+    // prefer multi-word phrases by checking each keyword via regex word boundaries
+    for (const rule of SKILL_RULES) {
+      for (const kw of rule.keywords) {
+        const escaped = kw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const pattern = new RegExp(`\\b${escaped}\\b`);
+        if (pattern.test(t)) {
+          const mod = getAbilityModifier(rule.ability);
+          return { skill: rule.skill, ability: rule.ability, mod };
+        }
+      }
+    }
+    return null;
+  }
+
   // Parser to detect item usage anywhere in the sentence (e.g., "I grab my rope...")
   function parseUseIntent(text) {
-    const verbs = [
-      'use', 'grab', 'take', 'pull out', 'draw',
+    const useVerbs = [
+      'use', 'pull out', 'draw',
       'drink', 'quaff', 'equip', 'don', 'wield',
       'eat', 'chew', 'read', 'light', 'ignite', 'strike',
       'apply', 'smear', 'throw', 'toss', 'hurl'
     ];
+    const obtainVerbs = ['take', 'grab', 'pick up', 'collect', 'snatch'];
+
     const lower = text.toLowerCase();
     const normalized = lower
       .replace(/\b(the|a|an|my|some)\b/g, ' ')
-      .replace(/[^a-z0-9\s\-']/g, ' ') // drop punctuation, keep hyphens/apostrophes
+      .replace(/[^a-z0-9\s\-']/g, ' ')
       .replace(/\s+/g, ' ')
       .trim();
 
+    const escape = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
     // Stage A: direct verb + item phrase anywhere in the sentence
-    const verbPattern = new RegExp(`\\b(${verbs.join('|')})\\b\\s+(?:the|a|an|my|some)?\\s*([^,.!?;]*)`, 'i');
-    const direct = normalized.match(verbPattern);
-    if (direct && direct[2]) {
-      const candidate = direct[2].replace(/\b(and|then|across|into|onto|with|at|to|from)\b.*$/i, '').trim();
-      if (candidate) return { verb: direct[1], item: candidate };
+    for (const v of useVerbs) {
+      const re = new RegExp(`\\b${escape(v)}\\b\\s+(?:the|a|an|my|some)?\\s*([^,.!?;]*)`, 'i');
+      const m = normalized.match(re);
+      if (m && m[1]) {
+        const candidate = m[1].replace(/\b(and|then|across|into|onto|with|at|to|from)\b.*$/i, '').trim();
+        if (candidate) return { verb: v, item: candidate, action: 'use' };
+      }
+    }
+    for (const v of obtainVerbs) {
+      const re = new RegExp(`\\b${escape(v)}\\b\\s+(?:the|a|an|my|some)?\\s*([^,.!?;]*)`, 'i');
+      const m = normalized.match(re);
+      if (m && m[1]) {
+        const candidate = m[1].replace(/\b(and|then|across|into|onto|with|at|to|from)\b.*$/i, '').trim();
+        if (candidate) return { verb: v, item: candidate, action: 'obtain' };
+      }
     }
 
-    // Stage B: if any verb exists anywhere and an inventory item name appears, infer usage
-    const anyVerb = verbs.some(v => new RegExp(`\\b${v}\\b`, 'i').test(normalized));
+    // Stage B: if any relevant verb exists and an inventory item name appears, infer usage of an owned item
+    const anyVerb = [...useVerbs, ...obtainVerbs].some(v => new RegExp(`\\b${escape(v)}\\b`, 'i').test(normalized));
     if (anyVerb && playerState?.inventory?.length) {
       const textTokens = normalized;
-      // Find the first inventory item name that appears in text
       let bestMatch = null;
       for (const it of playerState.inventory) {
         const display = typeof it === 'string' ? it : (it.name || '');
         const normName = sanitizeItemName(display);
         if (normName && textTokens.includes(normName)) {
-          bestMatch = { verb: 'use', item: display };
+          bestMatch = { verb: 'use', item: display, action: 'use' };
           break;
         }
-        // also try partial match for the first word of item
         const firstWord = normName.split(' ')[0];
         if (firstWord && textTokens.includes(firstWord) && firstWord.length >= 3) {
-          bestMatch = { verb: 'use', item: display };
+          bestMatch = { verb: 'use', item: display, action: 'use' };
           break;
         }
       }
@@ -175,17 +286,28 @@ function App() {
       const intent = parseUseIntent(input);
       let inputForAI = input;
       if (intent) {
-        const found = findInventoryItem(intent.item);
-        if (!found) {
-          addMessage({
-            type: 'system',
-            content: `You don't have "${intent.item}" in your inventory.`
-          });
-          return; // do not send to AI
+        if (intent.action === 'use') {
+          const found = findInventoryItem(intent.item);
+          if (!found) {
+            addMessage({
+              type: 'system',
+              content: `You don't have "${intent.item}" in your inventory.`
+            });
+            return; // do not send to AI
+          }
+          const displayName = typeof found === 'string' ? found : (found.name || intent.item);
+          inputForAI = `${inputForAI}\n[action: use_item: ${displayName}]`;
+        } else if (intent.action === 'obtain') {
+          // Do not block; this refers to taking something from the world
+          inputForAI = `${inputForAI}\n[action: obtain_item: ${intent.item}]`;
         }
-        // Provide an explicit hint to the DM that this is a validated item use
-        const displayName = typeof found === 'string' ? found : (found.name || intent.item);
-        inputForAI = `${input}\n[action: use_item: ${displayName}]`;
+      }
+
+      // Skill intent detection (works alongside item usage if both are present)
+      const skill = parseSkillIntent(input);
+      if (skill) {
+        const signed = skill.mod >= 0 ? `+${skill.mod}` : `${skill.mod}`;
+        inputForAI = `${inputForAI}\n[action: skill_check: ${skill.skill} | ability: ${skill.ability.toUpperCase()} | mod: ${signed}]`;
       }
 
       // Add user message
@@ -353,6 +475,42 @@ function App() {
       content: '💾 Game saved!'
     });
   }
+
+  function quickSave() {
+    const saveData = {
+      playerState,
+      messages: messages.slice(-20),
+      currentScene,
+      timestamp: Date.now()
+    };
+    const res = saveService.save(saveData);
+    addMessage({ type: res.success ? 'system' : 'error', content: res.success ? '💾 Quicksaved.' : `Save failed: ${res.error}` });
+  }
+
+  async function quickLoad() {
+    const res = saveService.load();
+    if (!res.success) {
+      addMessage({ type: 'system', content: 'No quicksave found.' });
+      return;
+    }
+    const saveData = res.data;
+    await mcpClient.callTool('save_state', { key: 'player', value: saveData.playerState });
+    setPlayerState(saveData.playerState);
+    setMessages(saveData.messages || []);
+    setCurrentScene(saveData.currentScene || 'start');
+    setShowCharCreation(false);
+    hasInitialized.current = true;
+    addMessage({ type: 'system', content: '📂 Quicksave loaded.' });
+  }
+
+  function newGame() {
+    saveService.clear();
+    setMessages([]);
+    setPlayerState(null);
+    setCurrentScene('start');
+    setShowCharCreation(true);
+    hasInitialized.current = false;
+  }
   
   async function loadGame(file) {
     try {
@@ -402,6 +560,22 @@ function App() {
           </div>
           <div className="flex gap-2">
             <button
+              onClick={quickSave}
+              className="flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-500 hover:to-green-500 text-white px-3 py-2 rounded-lg transition shadow-lg hover:shadow-emerald-500/50"
+              title="Quick Save"
+            >
+              <Save size={18} />
+              <span className="hidden sm:inline font-semibold">Quick Save</span>
+            </button>
+            <button
+              onClick={quickLoad}
+              className="flex items-center gap-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white px-3 py-2 rounded-lg transition shadow-lg hover:shadow-cyan-500/50"
+              title="Quick Load"
+            >
+              <Download size={18} />
+              <span className="hidden sm:inline font-semibold">Quick Load</span>
+            </button>
+            <button
               onClick={saveGame}
               className="flex items-center gap-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white px-4 py-2 rounded-lg transition shadow-lg hover:shadow-purple-500/50"
               title="Save Game"
@@ -419,6 +593,14 @@ function App() {
                 onChange={(e) => e.target.files[0] && loadGame(e.target.files[0])}
               />
             </label>
+            <button
+              onClick={newGame}
+              className="flex items-center gap-2 bg-gradient-to-r from-slate-600 to-slate-700 hover:from-slate-500 hover:to-slate-600 text-white px-3 py-2 rounded-lg transition shadow-lg"
+              title="New Game"
+            >
+              <RotateCcw size={18} />
+              <span className="hidden sm:inline font-semibold">New</span>
+            </button>
           </div>
         </div>
       </header>
