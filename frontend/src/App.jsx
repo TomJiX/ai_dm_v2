@@ -14,15 +14,7 @@ import { saveService } from './services/saveService';
 function App() {
   const [showCharCreation, setShowCharCreation] = useState(true);
   const [messages, setMessages] = useState([]);
-        // If the MCP player state declares a new location that matches a known scene, sync it
-        const loc = stateResult.value.location;
-        if (loc && scenario.scenes && Object.prototype.hasOwnProperty.call(scenario.scenes, loc)) {
-          if (loc !== currentScene) {
-            setCurrentScene(loc);
-            const newScene = scenario.scenes[loc];
-            updateQuickActions(newScene);
-          }
-        }
+  const [playerState, setPlayerState] = useState(null);
   const [currentScene, setCurrentScene] = useState('start');
   const [isThinking, setIsThinking] = useState(false);
   const [quickActions, setQuickActions] = useState([]);
@@ -185,6 +177,15 @@ function App() {
     return Math.floor((score - 10) / 2);
   }
 
+  function isProficientIn(skill) {
+    const profs = playerState?.proficiencies?.skills || [];
+    return profs.includes(skill);
+  }
+
+  function getProficiencyBonus() {
+    return playerState?.proficiencies?.bonus || 2;
+  }
+
   function parseSkillIntent(text) {
     const t = text.toLowerCase();
     // prefer multi-word phrases by checking each keyword via regex word boundaries
@@ -326,7 +327,9 @@ function App() {
       // Skill intent detection (works alongside item usage if both are present)
       const skill = parseSkillIntent(input);
       if (skill) {
-        const signed = skill.mod >= 0 ? `+${skill.mod}` : `${skill.mod}`;
+        let totalMod = skill.mod;
+        if (isProficientIn(skill.skill)) totalMod += getProficiencyBonus();
+        const signed = totalMod >= 0 ? `+${totalMod}` : `${totalMod}`;
         inputForAI = `${inputForAI}\n[action: skill_check: ${skill.skill} | ability: ${skill.ability.toUpperCase()} | mod: ${signed}]`;
       }
 

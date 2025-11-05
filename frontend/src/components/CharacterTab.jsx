@@ -1,5 +1,4 @@
 import { Shield } from 'lucide-react';
-import { getModifiers } from '../data/initialState';
 
 /**
  * CharacterTab Component
@@ -15,7 +14,25 @@ export default function CharacterTab({ player }) {
   }
   
   const hpPercentage = (player.hp.current / player.hp.max) * 100;
-  const modifiers = getModifiers(player.stats);
+
+  // Normalize stats to short keys and compute modifiers
+  const s = player.stats || {};
+  const stats = {
+    str: s.str ?? s.strength ?? 10,
+    dex: s.dex ?? s.dexterity ?? 10,
+    con: s.con ?? s.constitution ?? 10,
+    int: s.int ?? s.intelligence ?? 10,
+    wis: s.wis ?? s.wisdom ?? 10,
+    cha: s.cha ?? s.charisma ?? 10
+  };
+  const modifiers = {
+    str: Math.floor((stats.str - 10) / 2),
+    dex: Math.floor((stats.dex - 10) / 2),
+    con: Math.floor((stats.con - 10) / 2),
+    int: Math.floor((stats.int - 10) / 2),
+    wis: Math.floor((stats.wis - 10) / 2),
+    cha: Math.floor((stats.cha - 10) / 2)
+  };
   
   function getHPColor(percentage) {
     if (percentage > 50) return 'bg-gradient-to-r from-green-500 to-emerald-500';
@@ -26,6 +43,29 @@ export default function CharacterTab({ player }) {
   function formatModifier(value) {
     return value >= 0 ? `+${value}` : `${value}`;
   }
+
+  const PROF_BONUS = player?.proficiencies?.bonus ?? 2;
+  const PROF_SKILLS = player?.proficiencies?.skills ?? [];
+  const SKILLS = [
+    { name: 'Athletics', ability: 'str' },
+    { name: 'Acrobatics', ability: 'dex' },
+    { name: 'Sleight of Hand', ability: 'dex' },
+    { name: 'Stealth', ability: 'dex' },
+    { name: 'Arcana', ability: 'int' },
+    { name: 'History', ability: 'int' },
+    { name: 'Investigation', ability: 'int' },
+    { name: 'Nature', ability: 'int' },
+    { name: 'Religion', ability: 'int' },
+    { name: 'Animal Handling', ability: 'wis' },
+    { name: 'Insight', ability: 'wis' },
+    { name: 'Medicine', ability: 'wis' },
+    { name: 'Perception', ability: 'wis' },
+    { name: 'Survival', ability: 'wis' },
+    { name: 'Deception', ability: 'cha' },
+    { name: 'Intimidation', ability: 'cha' },
+    { name: 'Performance', ability: 'cha' },
+    { name: 'Persuasion', ability: 'cha' }
+  ];
   
   return (
     <div className="p-4 space-y-4 text-white h-full">
@@ -83,7 +123,14 @@ export default function CharacterTab({ player }) {
           <span className="bg-gradient-to-r from-yellow-400 to-orange-400 bg-clip-text text-transparent">Ability Scores</span>
         </h3>
         <div className="grid grid-cols-3 gap-2">
-          {Object.entries(player.stats).map(([stat, value], idx) => {
+          {[
+            ['STR', 'str'],
+            ['DEX', 'dex'],
+            ['CON', 'con'],
+            ['INT', 'int'],
+            ['WIS', 'wis'],
+            ['CHA', 'cha']
+          ].map(([label, key], idx) => {
             const colors = [
               'from-red-600/30 to-red-500/20 border-red-500/30',
               'from-orange-600/30 to-orange-500/20 border-orange-500/30',
@@ -93,16 +140,45 @@ export default function CharacterTab({ player }) {
               'from-purple-600/30 to-purple-500/20 border-purple-500/30'
             ];
             return (
-              <div key={stat} className={`text-center p-3 bg-gradient-to-br ${colors[idx]} rounded-lg border transition-all hover:scale-105 shadow-md hover:shadow-lg`}>
-                <p className="text-xs text-slate-300 uppercase font-semibold mb-1">
-                  {stat.slice(0, 3)}
+              <div key={key} className={`text-center p-3 bg-gradient-to-br ${colors[idx]} rounded-lg border transition-all hover:scale-105 shadow-md hover:shadow-lg`}>
+                <p className="text-xs text-slate-300 uppercase font-semibold mb-1">{label}</p>
+                <p className="text-2xl font-bold text-white">{stats[key]}</p>
+                <p className={`text-sm font-bold ${modifiers[key] >= 0 ? 'text-green-300' : 'text-red-300'}`}>
+                  {formatModifier(modifiers[key])}
                 </p>
-                <p className="text-2xl font-bold text-white">{value}</p>
-                <p className={`text-sm font-bold ${
-                  modifiers[stat] >= 0 ? 'text-green-300' : 'text-red-300'
-                }`}>
-                  {formatModifier(modifiers[stat])}
-                </p>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Skill Proficiencies */}
+      <div>
+        <h3 className="font-bold mb-3 text-lg text-slate-200 flex items-center gap-2">
+          <span className="text-xl">🎓</span>
+          <span className="bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent">Skill Proficiencies</span>
+        </h3>
+        <div className="mb-2 text-sm text-slate-300">
+          Proficiency Bonus: <span className="font-bold text-emerald-300">{formatModifier(PROF_BONUS)}</span>
+        </div>
+        <div className="grid grid-cols-1 gap-2">
+          {SKILLS.map(({ name, ability }) => {
+            const isProf = PROF_SKILLS.includes(name);
+            const total = modifiers[ability] + (isProf ? PROF_BONUS : 0);
+            return (
+              <div key={name} className="flex items-center justify-between bg-slate-800/60 border border-slate-700/60 rounded-lg px-3 py-2">
+                <div className="flex items-center gap-2">
+                  <span className={`w-2.5 h-2.5 rounded-full ${isProf ? 'bg-emerald-400' : 'bg-slate-600'}`} />
+                  <span className="text-slate-200 font-medium">{name}</span>
+                  <span className="text-xs text-slate-400">({ability.toUpperCase()})</span>
+                </div>
+                <div className="font-mono text-sm">
+                  <span className={`${total >= 0 ? 'text-green-300' : 'text-red-300'} font-bold`}>{formatModifier(total)}</span>
+                  <span className="text-slate-500 ml-1">=
+                    {formatModifier(modifiers[ability])}
+                    {isProf && <span className="text-emerald-300"> + {formatModifier(PROF_BONUS)}</span>}
+                  </span>
+                </div>
               </div>
             );
           })}

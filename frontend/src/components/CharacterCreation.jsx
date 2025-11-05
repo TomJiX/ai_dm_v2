@@ -93,6 +93,13 @@ export default function CharacterCreation({ onComplete }) {
 
   const handleComplete = () => {
     const finalStats = getFinalStats();
+    const classSkillMap = {
+      fighter: ['Athletics', 'Intimidation', 'Perception'],
+      wizard: ['Arcana', 'History', 'Investigation'],
+      rogue: ['Stealth', 'Sleight of Hand', 'Perception'],
+      cleric: ['Religion', 'Medicine', 'Insight']
+    };
+    const profSkills = classSkillMap[charClass.id] || [];
     const character = {
       name,
       gender,
@@ -108,7 +115,8 @@ export default function CharacterCreation({ onComplete }) {
       resources: {
         spell_slots: charClass.id === 'wizard' || charClass.id === 'cleric' ? { 1: 2 } : {},
         special_abilities: []
-      }
+      },
+      proficiencies: { skills: profSkills, bonus: 2 }
     };
     onComplete(character);
   };

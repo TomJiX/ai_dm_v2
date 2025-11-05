@@ -13,6 +13,8 @@ export default function DialogueWindow({
   quickActions = []
 }) {
   const [input, setInput] = useState('');
+  const [history, setHistory] = useState([]);
+  const [historyIndex, setHistoryIndex] = useState(-1);
   const messagesEndRef = useRef(null);
   
   const scrollToBottom = () => {
@@ -25,15 +27,35 @@ export default function DialogueWindow({
   
   const handleSend = () => {
     if (input.trim() && !isThinking) {
-      onSendMessage(input.trim());
+      const text = input.trim();
+      onSendMessage(text);
+      setHistory((h) => [...h, text]);
+      setHistoryIndex(-1);
       setInput('');
     }
   };
   
-  const handleKeyPress = (e) => {
+  const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSend();
+      return;
+    }
+    if (e.key === 'ArrowUp' && !e.shiftKey) {
+      e.preventDefault();
+      if (history.length === 0) return;
+      const nextIndex = historyIndex < 0 ? history.length - 1 : Math.max(0, historyIndex - 1);
+      setHistoryIndex(nextIndex);
+      setInput(history[nextIndex] || '');
+      return;
+    }
+    if (e.key === 'ArrowDown' && !e.shiftKey) {
+      e.preventDefault();
+      if (history.length === 0) return;
+      const nextIndex = historyIndex < 0 ? -1 : Math.min(history.length - 1, historyIndex + 1);
+      setHistoryIndex(nextIndex);
+      setInput(nextIndex === -1 ? '' : (history[nextIndex] || ''));
+      return;
     }
   };
   
@@ -73,17 +95,7 @@ export default function DialogueWindow({
       <div className="border-t border-purple-500/20 p-4 bg-gradient-to-r from-slate-800/90 via-slate-900/90 to-slate-800/90 backdrop-blur-sm shadow-lg">
         {/* Quick actions */}
         {quickActions.length > 0 && !isThinking && (
-          <div className="flex flex-wrap gap-2 mb-3 animate-fade-in">
-            {quickActions.map((action, idx) => (
-              <button
-                key={idx}
-                onClick={() => handleQuickAction(action)}
-                className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 px-4 py-2 rounded-full text-sm text-white transition-all transform hover:scale-110 shadow-lg border-2 border-purple-400/50 font-semibold"
-              >
-                ✨ {action}
-              </button>
-            ))}
-          </div>
+          {/* Dialogue suggestions removed by request */}
         )}
         
         {/* Text input */}
@@ -91,7 +103,7 @@ export default function DialogueWindow({
           <textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            onKeyPress={handleKeyPress}
+            onKeyDown={handleKeyDown}
             placeholder="What do you do? (Press Enter to send)"
             disabled={isThinking}
             className="flex-1 bg-slate-800 text-white px-5 py-3 rounded-xl resize-none focus:outline-none focus:ring-4 focus:ring-purple-500/50 disabled:opacity-50 placeholder-slate-400 border-2 border-purple-600/30 focus:border-purple-500 transition-all shadow-lg"
