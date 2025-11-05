@@ -44,7 +44,7 @@ GAME RULES:
 ${Object.entries(scenario.rules).map(([key, value]) => `- ${key}: ${value}`).join('\n')}
 
 YOUR CAPABILITIES:
-You can invoke game tools using this exact format:
+You can invoke game tools using this exact format (ARGUMENTS MUST be strict JSON: keys and strings double-quoted, no trailing commas, numbers without leading '+'):
 TOOL_CALL: tool_name
 ARGUMENTS: {json_arguments}
 
@@ -90,6 +90,8 @@ INSTRUCTIONS:
 6. Support multiple approaches: combat, stealth, negotiation, creativity
 7. If player tries something not in the scenario, allow it with appropriate skill checks
 8. Track consequences: damage affects HP, choices affect story flags
+9. Do NOT reset or retcon the scene. Maintain continuity. Only change locations when the player moves or state updates (e.g., update_state sets a new location). Avoid re-describing unchanged settings—if the scene hasn't changed, summarize briefly instead of repeating long setup.
+10. If the player declares an attack/charge or you see [action: start_combat], BEGIN COMBAT: call roll_initiative (include enemies and player) and proceed accordingly. Use resolve_attack for attacks.
 
 SCENE CONTEXT:
 ${currentScene.npcs && currentScene.npcs.length > 0 ? `NPCs present: ${currentScene.npcs.map(npc => npc.name).join(', ')}` : 'No NPCs present'}

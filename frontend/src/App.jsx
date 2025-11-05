@@ -14,7 +14,15 @@ import { saveService } from './services/saveService';
 function App() {
   const [showCharCreation, setShowCharCreation] = useState(true);
   const [messages, setMessages] = useState([]);
-  const [playerState, setPlayerState] = useState(null);
+        // If the MCP player state declares a new location that matches a known scene, sync it
+        const loc = stateResult.value.location;
+        if (loc && scenario.scenes && Object.prototype.hasOwnProperty.call(scenario.scenes, loc)) {
+          if (loc !== currentScene) {
+            setCurrentScene(loc);
+            const newScene = scenario.scenes[loc];
+            updateQuickActions(newScene);
+          }
+        }
   const [currentScene, setCurrentScene] = useState('start');
   const [isThinking, setIsThinking] = useState(false);
   const [quickActions, setQuickActions] = useState([]);
@@ -193,6 +201,18 @@ function App() {
     return null;
   }
 
+  // Detect clear combat intent (attack/charge/etc.) optionally extract target words
+  function parseCombatIntent(text) {
+    const t = text.toLowerCase();
+    const verbs = ['attack','charge','rush','strike','shoot','fire at','stab','slash','smite','punch','kick'];
+    const foundVerb = verbs.find(v => new RegExp(`\b${v.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}\b`, 'i').test(t));
+    if (!foundVerb) return null;
+    // try to extract simple target after verb (e.g., attack the goblins)
+    const m = t.match(new RegExp(`${foundVerb.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}\s+(?:the|a|an|some)?\s*([a-z\s]+)`, 'i'));
+    const target = m && m[1] ? m[1].split(/[.,!?]/)[0].trim() : '';
+    return { verb: foundVerb, target };
+  }
+
   // Parser to detect item usage anywhere in the sentence (e.g., "I grab my rope...")
   function parseUseIntent(text) {
     const useVerbs = [
@@ -308,6 +328,12 @@ function App() {
       if (skill) {
         const signed = skill.mod >= 0 ? `+${skill.mod}` : `${skill.mod}`;
         inputForAI = `${inputForAI}\n[action: skill_check: ${skill.skill} | ability: ${skill.ability.toUpperCase()} | mod: ${signed}]`;
+      }
+
+      // Combat intent detection: encourage initiative/attack resolution
+      const combat = parseCombatIntent(input);
+      if (combat) {
+        inputForAI = `${inputForAI}\n[action: start_combat${combat.target ? `: ${combat.target}` : ''}]`;
       }
 
       // Add user message

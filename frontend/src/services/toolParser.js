@@ -15,34 +15,76 @@
 export function parseToolCalls(aiResponse) {
   const toolCalls = [];
   const lines = aiResponse.split('\n');
-  
+
+  const stripCodeFences = (s) => {
+    const trimmed = s.trim();
+    if (trimmed.startsWith('```')) {
+      return trimmed.replace(/^```(?:json)?/i, '').replace(/```$/,'').trim();
+    }
+    return trimmed;
+  };
+
+  const sanitizeToJSON = (s) => {
+    let x = stripCodeFences(s)
+      // Quote unquoted keys
+      .replace(/([\{,]\s*)([A-Za-z_][A-Za-z0-9_]*)\s*:/g, '$1"$2":')
+      // Replace single quotes with double quotes
+      .replace(/'(.*?)'/g, '"$1"')
+      // Remove trailing commas
+      .replace(/,(?=\s*[}\]])/g, '')
+      // Remove + from numbers like +3
+      .replace(/:\s*\+(\d+(?:\.\d+)?)/g, ': $1')
+      // undefined/NaN -> null
+      .replace(/\bundefined\b/g, 'null')
+      .replace(/\bNaN\b/g, 'null');
+    return x;
+  };
+
+  const tryParseArgs = (raw) => {
+    const direct = stripCodeFences(raw).trim();
+    try {
+      return JSON.parse(direct);
+    } catch {}
+    try {
+      const fixed = sanitizeToJSON(raw);
+      return JSON.parse(fixed);
+    } catch (e) {
+      console.error(`Failed to parse tool arguments: ${e.message}`);
+      return null;
+    }
+  };
+
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trim();
     
-    // Look for TOOL_CALL: pattern
     if (line.startsWith('TOOL_CALL:')) {
       const toolName = line.substring('TOOL_CALL:'.length).trim();
-      
-      // Look for ARGUMENTS: on next line
-      if (i + 1 < lines.length) {
-        const nextLine = lines[i + 1].trim();
-        if (nextLine.startsWith('ARGUMENTS:')) {
-          try {
-            const argsString = nextLine.substring('ARGUMENTS:'.length).trim();
-            const args = JSON.parse(argsString);
-            
-            toolCalls.push({
-              tool: toolName,
-              args: args
-            });
-          } catch (error) {
-            console.error(`Failed to parse tool arguments: ${error.message}`);
-          }
+      let argsRaw = '';
+      // Collect following lines that belong to ARGUMENTS block (can be multi-line)
+      if (i + 1 < lines.length && lines[i + 1].trim().startsWith('ARGUMENTS:')) {
+        let argLine = lines[i + 1].trim();
+        argsRaw = argLine.substring('ARGUMENTS:'.length).trim();
+        let j = i + 2;
+        // If the args likely span multiple lines (no closing brace/bracket yet), accumulate
+        const opens = (s) => (s.match(/[\[\{]/g) || []).length;
+        const closes = (s) => (s.match(/[\]\}]/g) || []).length;
+        let balance = opens(argsRaw) - closes(argsRaw);
+        while (j < lines.length && balance > 0) {
+          const nxt = lines[j];
+          if (nxt.trim().startsWith('TOOL_CALL:')) break;
+          argsRaw += '\n' + nxt;
+          balance += opens(nxt) - closes(nxt);
+          j++;
+        }
+        // Attempt to parse
+        const args = tryParseArgs(argsRaw);
+        if (args !== null) {
+          toolCalls.push({ tool: toolName, args });
         }
       }
     }
   }
-  
+
   return toolCalls;
 }
 
