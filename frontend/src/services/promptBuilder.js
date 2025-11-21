@@ -90,7 +90,7 @@ INSTRUCTIONS:
 6. Support multiple approaches: combat, stealth, negotiation, creativity
 7. If player tries something not in the scenario, allow it with appropriate skill checks
 8. Track consequences: damage affects HP, choices affect story flags
-9. Do NOT reset or retcon the scene. Maintain continuity. Only change locations when the player moves or state updates (e.g., update_state sets a new location). Avoid re-describing unchanged settings—if the scene hasn't changed, summarize briefly instead of repeating long setup.
+9. **CRITICAL CONTINUITY**: Do NOT reset or retcon the scene. The player is wherever the RECENT CONVERSATION placed them. Only change locations when the player explicitly moves or when you call update_state with a new location. If the player is in the forest, they stay in the forest. If they're approaching a tree, continue from there—do NOT teleport them back to the tavern or any previous location. When narrating a skill check result, describe the outcome in the CURRENT location, not a past one.
 10. If the player declares an attack/charge or you see [action: start_combat], BEGIN COMBAT: call roll_initiative (include enemies and player) and proceed accordingly. Use resolve_attack for attacks.
 
 SCENE CONTEXT:
@@ -125,8 +125,18 @@ function buildUserPrompt(messageHistory, userAction) {
     prompt += '\n';
   }
   
+  // Extract last narrative to anchor current location/context
+  const lastNarrative = messageHistory?.slice().reverse().find(m => m.role === 'assistant' && m.type === 'narrative');
+  if (lastNarrative) {
+    prompt += `CURRENT SITUATION (from last narration):\n`;
+    // Take last paragraph or sentence to reinforce current setting
+    const sentences = lastNarrative.content.split(/[.!?]\s+/);
+    const relevantContext = sentences.slice(-3).join('. ') + (sentences.length > 0 ? '.' : '');
+    prompt += `${relevantContext}\n\n`;
+  }
+  
   prompt += `CURRENT ACTION: ${userAction}\n\n`;
-  prompt += `Generate your response now. Remember to use TOOL_CALL for any random elements.`;
+  prompt += `CRITICAL: Continue from the CURRENT SITUATION above. DO NOT reset the location or scene. The player is wherever the last narration placed them. Use TOOL_CALL for any random elements.`;
   
   return prompt;
 }

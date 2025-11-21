@@ -93,10 +93,7 @@ export default function DialogueWindow({
       
       {/* Input area */}
       <div className="border-t border-purple-500/20 p-4 bg-gradient-to-r from-slate-800/90 via-slate-900/90 to-slate-800/90 backdrop-blur-sm shadow-lg">
-        {/* Quick actions */}
-        {quickActions.length > 0 && !isThinking && (
-          {/* Dialogue suggestions removed by request */}
-        )}
+        {/* Quick actions removed */}
         
         {/* Text input */}
         <div className="flex gap-3">
