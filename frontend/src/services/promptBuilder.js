@@ -28,17 +28,16 @@ function buildSystemPrompt(scenario, currentScene, playerState) {
 SCENARIO: ${scenario.title}
 ${scenario.description}
 
-CURRENT SCENE: ${currentScene.title}
-${currentScene.description}
+SCENARIO REFERENCE (for context only - the player may have moved beyond this):
+${currentScene.title}: ${currentScene.description}
 
 PLAYER CHARACTER:
 - Name: ${playerState.name} (${playerState.class}, Level ${playerState.level})
 - HP: ${playerState.hp.current}/${playerState.hp.max}
 - AC: ${playerState.ac}
-- Stats: STR ${playerState.stats.strength}, DEX ${playerState.stats.dexterity}, CON ${playerState.stats.constitution}, INT ${playerState.stats.intelligence}, WIS ${playerState.stats.wisdom}, CHA ${playerState.stats.charisma}
-- Inventory: ${playerState.inventory.join(', ')}
-- Location: ${currentScene.title}
-${playerState.conditions.length > 0 ? `- Conditions: ${playerState.conditions.join(', ')}` : ''}
+- Stats: STR ${playerState.stats.str ?? playerState.stats.strength}, DEX ${playerState.stats.dex ?? playerState.stats.dexterity}, CON ${playerState.stats.con ?? playerState.stats.constitution}, INT ${playerState.stats.int ?? playerState.stats.intelligence}, WIS ${playerState.stats.wis ?? playerState.stats.wisdom}, CHA ${playerState.stats.cha ?? playerState.stats.charisma}
+- Inventory: ${Array.isArray(playerState.inventory) ? playerState.inventory.map(i => typeof i === 'string' ? i : i.name).join(', ') : 'none'}
+${playerState.conditions && playerState.conditions.length > 0 ? `- Conditions: ${playerState.conditions.join(', ')}` : ''}
 
 GAME RULES:
 ${Object.entries(scenario.rules).map(([key, value]) => `- ${key}: ${value}`).join('\n')}
@@ -90,15 +89,13 @@ INSTRUCTIONS:
 6. Support multiple approaches: combat, stealth, negotiation, creativity
 7. If player tries something not in the scenario, allow it with appropriate skill checks
 8. Track consequences: damage affects HP, choices affect story flags
-9. **CRITICAL CONTINUITY**: Do NOT reset or retcon the scene. The player is wherever the RECENT CONVERSATION placed them. Only change locations when the player explicitly moves or when you call update_state with a new location. If the player is in the forest, they stay in the forest. If they're approaching a tree, continue from there—do NOT teleport them back to the tavern or any previous location. When narrating a skill check result, describe the outcome in the CURRENT location, not a past one.
+9. **CRITICAL CONTINUITY**: Do NOT reset or retcon the scene. The player is wherever the RECENT CONVERSATION placed them. Only change locations when the player explicitly moves or when you call update_state with a new location. If the player is in the forest, they stay in the forest. If they're in a cave with torch and sword drawn, continue from there—do NOT teleport them back to the tavern or any previous location. The SCENARIO REFERENCE above is just background context; it does NOT represent the current situation. When narrating a skill check result, describe the outcome in the CURRENT location shown in the RECENT CONVERSATION, not in the scenario reference location.
 10. If the player declares an attack/charge or you see [action: start_combat], BEGIN COMBAT: call roll_initiative (include enemies and player) and proceed accordingly. Use resolve_attack for attacks.
 
-SCENE CONTEXT:
-${currentScene.npcs && currentScene.npcs.length > 0 ? `NPCs present: ${currentScene.npcs.map(npc => npc.name).join(', ')}` : 'No NPCs present'}
-${currentScene.exits && currentScene.exits.length > 0 ? `Available exits: ${currentScene.exits.join(', ')}` : 'No obvious exits'}
-${currentScene.items && currentScene.items.length > 0 ? `Items available: ${currentScene.items.join(', ')}` : 'No items visible'}
-${currentScene.skill_checks ? `\nPossible skill checks:\n${currentScene.skill_checks.map(check => `- ${check.skill} (DC ${check.dc}): ${check.success}`).join('\n')}` : ''}
-${currentScene.encounters && currentScene.encounters.length > 0 ? `\nPotential encounter: ${currentScene.encounters[0].type}` : ''}
+SCENARIO REFERENCE NPCs/ITEMS (may not be present if player has moved):
+${currentScene.npcs && currentScene.npcs.length > 0 ? `Original scene NPCs: ${currentScene.npcs.map(npc => npc.name).join(', ')}` : ''}
+${currentScene.items && currentScene.items.length > 0 ? `Original scene items: ${currentScene.items.join(', ')}` : ''}
+Note: The player's ACTUAL surroundings are determined by the RECENT CONVERSATION, not this reference.
 
 TONE: ${scenario.dm_guidance?.tone || 'Exciting and heroic'}
 
